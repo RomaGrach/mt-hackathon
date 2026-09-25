@@ -117,12 +117,12 @@ export function advance(state, scenario, now) {
 
 export function summarize(state, scenario) {
   if (!state.finished) throw new GameError('NOT_FINISHED', 'Сценарий ещё не завершён', 409);
-  const passed = !state.criticalError && state.safety >= 65 && state.loyalty >= 55;
+  const passed = !state.aborted && !state.criticalError && state.safety >= 65 && state.loyalty >= 55;
   return { scenarioId: state.scenarioId, scenarioVersion: state.scenarioVersion, title: scenario.title,
     points: state.points, safety: state.safety, loyalty: state.loyalty, criticalError: state.criticalError,
     passed, grade: !passed ? 'Нужна практика' : state.safety >= 85 && state.loyalty >= 80 ? 'Отлично' : 'Хорошо',
     practice: state.practice, competencies: state.competencies, history: state.history,
-    ending: scenario.nodes[state.nodeId], completedAt: new Date(state.finishedAt).toISOString() };
+    ending: state.aborted ? { kind: 'ending', title: 'Попытка прервана', text: 'Прогресс этой попытки сохранён для разбора, но зачёт не получен.' } : scenario.nodes[state.nodeId], completedAt: new Date(state.finishedAt).toISOString() };
 }
 
 export function rewind(state, scenario, index, now) {
@@ -145,4 +145,9 @@ export function publicState(state, scenario, id, now) {
     scenario: { id: scenario.id, title: scenario.title, category: scenario.category, icon: scenario.icon, number: scenario.number,
       accent: scenario.accent, skills: scenario.skills, carriage: scenario.carriage, objective: scenario.objective },
     result: state.finished ? summarize(state, scenario) : null, serverNow: now };
+}
+
+export function abort(state, now) {
+  if (state.finished) throw new GameError('ALREADY_FINISHED', 'Попытка уже завершена', 409);
+  return { ...state, aborted: true, finished: true, finishedAt: now, phase: 'result', deadline: null, revision: state.revision + 1 };
 }
