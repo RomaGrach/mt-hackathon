@@ -1,16 +1,14 @@
-import { cp, mkdir, readFile, rm } from 'node:fs/promises';
-import { resolve, sep } from 'node:path';
-
-const root = resolve('.');
-const output = resolve(root, 'dist');
-if (!output.startsWith(root + sep) || output !== resolve(root, 'dist')) throw new Error('Некорректный каталог сборки');
-
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+const output = resolve('dist');
 await rm(output, { recursive: true, force: true });
 await mkdir(resolve(output, 'src'), { recursive: true });
-for (const file of ['index.html', 'styles.css', 'src/app.js', 'src/game.js', 'src/profile.js', 'src/scenarios.js']) {
-  await cp(resolve(root, file), resolve(output, file));
-}
-
-const html = await readFile(resolve(output, 'index.html'), 'utf8');
-if (!html.includes('/src/app.js') || !html.includes('/styles.css')) throw new Error('Сайт ссылается на отсутствующие ресурсы');
-console.log('Собраны только публичные файлы сайта в dist/');
+for (const file of ['index.html', 'styles.css', 'src/app.js', 'src/api.js', 'src/views.js'])
+  await cp(resolve(file), resolve(output, file));
+await writeFile(
+  resolve(output, 'README.md'),
+  '# Frontend bundle\n\nRequires the matching Node.js backend at /api on the same origin. This is NOT a standalone static game. Use node server.mjs or docker compose up --build for the full application.\n'
+);
+console.log(
+  'Frontend built in dist/. Serve /api using the matching backend, never as a standalone static demo.'
+);

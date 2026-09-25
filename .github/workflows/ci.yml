@@ -1,0 +1,31 @@
+name: Check game
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run validate:scenarios
+      - run: npm test
+      - run: npm run build:site
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: docker build -t reis400:test .
+      - name: Container health and static API contract
+        run: |
+          docker run -d --name reis400-check -p 127.0.0.1:3000:3000 reis400:test
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:3000/api/health && break; sleep 1; done
+          curl -fsS http://127.0.0.1:3000/api/openapi.json > /dev/null
+          docker rm -f reis400-check

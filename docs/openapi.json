@@ -1,0 +1,787 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "РЕЙС 400 — API",
+    "version": "2.0.0",
+    "description": "Synthetic demo. Full response contract and examples: docs/API.md in this repository. No real HR, LMS or billing connection is bundled."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health and storage",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        }
+      }
+    },
+    "/api/session": {
+      "post": {
+        "summary": "Create synthetic profile or reuse current session",
+        "security": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Reis-Client",
+            "required": true,
+            "schema": {
+              "const": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "201": {
+            "description": "Created; response includes profile bootstrap or authoritative run."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "crew": {
+                    "type": "string",
+                    "enum": [
+                      "msk-1",
+                      "msk-2",
+                      "spb-1",
+                      "spb-2"
+                    ]
+                  }
+                },
+                "required": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bootstrap": {
+      "get": {
+        "summary": "Profile, catalogue, achievements, challenge and notices",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        }
+      }
+    },
+    "/api/profile": {
+      "patch": {
+        "summary": "Change synthetic crew",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Reis-Client",
+            "required": true,
+            "schema": {
+              "const": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "crew": {
+                    "type": "string",
+                    "enum": [
+                      "msk-1",
+                      "msk-2",
+                      "spb-1",
+                      "spb-2"
+                    ]
+                  }
+                },
+                "required": [
+                  "crew"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete own profile and all its activity",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Reis-Client",
+            "required": true,
+            "schema": {
+              "const": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "confirm": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "confirm"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profile/export": {
+      "get": {
+        "summary": "Export own data without credentials",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        }
+      }
+    },
+    "/api/logout": {
+      "post": {
+        "summary": "Revoke current session",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Reis-Client",
+            "required": true,
+            "schema": {
+              "const": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leaderboard": {
+      "get": {
+        "summary": "Top 50 within crew, depot or company",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "crew",
+                "depot",
+                "company"
+              ],
+              "default": "crew"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        }
+      }
+    },
+    "/api/notices/read": {
+      "post": {
+        "summary": "Read own notices",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Reis-Client",
+            "required": true,
+            "schema": {
+              "const": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 249
+                    }
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs": {
+      "post": {
+        "summary": "Start one scored or practice attempt",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Reis-Client",
+            "required": true,
+            "schema": {
+              "const": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "201": {
+            "description": "Created; response includes profile bootstrap or authoritative run."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "scenarioId": {
+                    "type": "string"
+                  },
+                  "practice": {
+                    "type": "boolean"
+                  },
+                  "requestId": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 64,
+                    "pattern": "^[a-zA-Z0-9-]+$"
+                  }
+                },
+                "required": [
+                  "scenarioId",
+                  "requestId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}": {
+      "get": {
+        "summary": "Read own run and settle expired timer",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/decision": {
+      "post": {
+        "summary": "Choose an action; late actions become timeouts",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Reis-Client",
+            "required": true,
+            "schema": {
+              "const": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "requestId": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 64,
+                    "pattern": "^[a-zA-Z0-9-]+$"
+                  },
+                  "optionId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 64
+                  }
+                },
+                "required": [
+                  "revision",
+                  "requestId",
+                  "optionId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/continue": {
+      "post": {
+        "summary": "Close feedback and start next timer",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Reis-Client",
+            "required": true,
+            "schema": {
+              "const": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "requestId": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 64,
+                    "pattern": "^[a-zA-Z0-9-]+$"
+                  }
+                },
+                "required": [
+                  "revision",
+                  "requestId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/abort": {
+      "post": {
+        "summary": "Finish as a failed attempt",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Reis-Client",
+            "required": true,
+            "schema": {
+              "const": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "requestId": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 64,
+                    "pattern": "^[a-zA-Z0-9-]+$"
+                  }
+                },
+                "required": [
+                  "revision",
+                  "requestId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/replay": {
+      "post": {
+        "summary": "Replay from zero-based index as practice only",
+        "security": [
+          {
+            "Session": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Reis-Client",
+            "required": true,
+            "schema": {
+              "const": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "201": {
+            "description": "Created; response includes profile bootstrap or authoritative run."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "requestId": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 64,
+                    "pattern": "^[a-zA-Z0-9-]+$"
+                  }
+                },
+                "required": [
+                  "index",
+                  "requestId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/integrations/v1/results": {
+      "get": {
+        "summary": "Read-only HR/LMS result events",
+        "security": [
+          {
+            "IntegrationKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        }
+      }
+    },
+    "/api/integrations/v1/profiles": {
+      "get": {
+        "summary": "Read-only HR/points-accounting profile snapshots",
+        "security": [
+          {
+            "IntegrationKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "maxLength": 36
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See docs/API.md for complete response fields, scoring and pagination semantics."
+          },
+          "default": {
+            "description": "JSON error: {error:{code,message}}. See docs/API.md for error codes."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "Session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "reis_session"
+      },
+      "IntegrationKey": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
