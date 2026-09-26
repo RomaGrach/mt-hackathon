@@ -82,7 +82,7 @@ export function refreshMotivation(store, profileId, catalog, now) {
     );
   const week = weekWindow(now);
   const completed = store.all(
-    'SELECT DISTINCT scenario_id FROM results WHERE profile_id=? AND passed=1 AND practice=0 AND completed_at>=? AND completed_at<?',
+    "SELECT DISTINCT scenario_id FROM results WHERE profile_id=? AND passed=1 AND practice=0 AND completed_at>=? AND completed_at<? AND COALESCE(json_extract(document,'$.schemaVersion'),1)=1",
     profileId,
     week.start,
     week.end
@@ -210,7 +210,8 @@ export function profileView(store, profileId, catalog, now) {
   const row = store.get('SELECT * FROM profiles WHERE id=?', profileId);
   const results = store
     .all('SELECT run_id,document FROM results WHERE profile_id=? ORDER BY id', profileId)
-    .map((r) => ({ ...JSON.parse(r.document), runId: r.run_id }));
+    .map((r) => ({ ...JSON.parse(r.document), runId: r.run_id }))
+    .filter((r) => r.schemaVersion !== 2);
   const best = new Map();
   const scored = results.filter((r) => !r.practice);
   const passed = scored.filter((r) => r.passed);
@@ -251,7 +252,14 @@ export function profileView(store, profileId, catalog, now) {
     level: 1 + Math.floor(points / 300),
     levelProgress: points % 300,
     nextLevelAt: (Math.floor(points / 300) + 1) * 300,
-    achievements: Object.keys(unlocked).filter((id) => unlocked[id]),
+    achievements: [
+      ...new Set([
+        ...Object.keys(unlocked).filter((id) => unlocked[id]),
+        ...store
+          .all('SELECT achievement_id FROM legacy_awards WHERE profile_id=?', profileId)
+          .map((x) => x.achievement_id),
+      ]),
+    ],
     bonuses,
     seasonPoints: bonuses.reduce((sum, b) => sum + b.amount, 0),
     competencies: Object.fromEntries(
@@ -268,7 +276,7 @@ export function leaderboard(store, profileId, scope, catalog) {
   const column = Object.hasOwn(scopes, scope) ? scopes[scope] : null;
   if (!column) return null;
   const rows = store.all(
-    'SELECT p.id,p.alias AS name,p.crew,p.depot,COALESCE(SUM(b.points),0) AS score,COUNT(b.scenario_id) AS completed FROM profiles p LEFT JOIN (SELECT profile_id,scenario_id,MAX(points) AS points FROM results WHERE passed=1 AND practice=0 GROUP BY profile_id,scenario_id) b ON b.profile_id=p.id WHERE p.' +
+    "SELECT p.id,p.alias AS name,p.crew,p.depot,COALESCE(SUM(b.points),0) AS score,COUNT(b.scenario_id) AS completed FROM profiles p LEFT JOIN (SELECT profile_id,scenario_id,MAX(points) AS points FROM results WHERE passed=1 AND practice=0 AND COALESCE(json_extract(document,'$.schemaVersion'),1)=1 GROUP BY profile_id,scenario_id) b ON b.profile_id=p.id WHERE p." +
       column +
       '=? GROUP BY p.id ORDER BY score DESC,completed DESC,p.created_at,p.id',
     me[column]

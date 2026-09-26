@@ -17,8 +17,16 @@ export class ShiftClient {
     this.run = await this.transport('/v2/runs/' + id);
     return this.run;
   }
-  start({ scenarioId, mode, timingPolicyId }) {
-    return this.mutate('/v2/runs', { scenarioId, mode, timingPolicyId, requestId: this.makeId() });
+  start({ scenarioId, mode, timingPolicyId, variantId, serviceClass, competitionSlotId }) {
+    return this.mutate('/v2/runs', {
+      scenarioId,
+      mode,
+      timingPolicyId,
+      ...(variantId !== undefined ? { variantId } : {}),
+      ...(serviceClass !== undefined ? { serviceClass } : {}),
+      ...(competitionSlotId !== undefined ? { competitionSlotId } : {}),
+      requestId: this.makeId(),
+    });
   }
   send(action) {
     if (!this.run) throw new ApiError('Сначала загрузите смену.', 'NO_RUN', 400);

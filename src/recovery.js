@@ -13,8 +13,13 @@ export function readPending(storage = globalThis.sessionStorage, key = PENDING_K
     if (!raw) return null;
     const item = JSON.parse(raw);
     if (
-      !/^\/(?:v2\/)?runs(?:\/[a-zA-Z0-9-]+(?:\/(?:decision|continue|abort|replay|commands))?)?$/.test(
-        item.path
+      !(
+        /^\/(?:v2\/)?runs(?:\/[a-zA-Z0-9-]+(?:\/(?:decision|continue|abort|replay|commands))?)?$/.test(
+          item.path
+        ) ||
+        /^\/v2\/(?:motivation\/preferences|periods\/v2-\d{4}-\d{2}-\d{2}\/entry|results\/[a-zA-Z0-9-]+\/debrief-ack)$/.test(
+          item.path
+        )
       ) ||
       !/^[a-zA-Z0-9-]{8,64}$/.test(item.body?.requestId)
     )

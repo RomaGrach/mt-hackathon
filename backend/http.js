@@ -20,6 +20,7 @@ const PUBLIC = new Map([
   ['/src/shift-client.js', ['src/shift-client.js', 'text/javascript']],
   ['/src/preview-state.js', ['src/preview-state.js', 'text/javascript']],
   ['/src/preview-app.js', ['src/preview-app.js', 'text/javascript']],
+  ['/src/motivation-view.js', ['src/motivation-view.js', 'text/javascript']],
   ['/src/app.js', ['src/app.js', 'text/javascript']],
   ['/src/api.js', ['src/api.js', 'text/javascript']],
   ['/src/views.js', ['src/views.js', 'text/javascript']],
@@ -159,7 +160,7 @@ export function createApp({
       if (!pathname.startsWith('/api/')) error('NOT_FOUND', 'Ресурс не найден', 404);
       if (pathname === '/api/health' && method === 'GET') {
         store.get('SELECT 1');
-        send(res, 200, { status: 'ok', version: '2.0.0', storage: 'sqlite' });
+        send(res, 200, { status: 'ok', version: '2.1.0', storage: 'sqlite' });
         return;
       }
       const client = req.socket.remoteAddress || 'unknown'; // Not persisted or logged.
@@ -219,6 +220,77 @@ export function createApp({
       const token = cookieValue(req);
       const profileId = service.session(token);
       if (!profileId) error('UNAUTHORIZED', 'Создайте учебный профиль для входа', 401);
+      if (pathname.startsWith('/api/v2/')) {
+        const v2 = service.shifts;
+        const reply = (out) => send(res, out.status, out.body);
+        if (pathname === '/api/v2/catalog' && method === 'GET') {
+          send(res, 200, { items: v2.catalog() });
+          return;
+        }
+        if (pathname === '/api/v2/motivation' && method === 'GET') {
+          send(res, 200, v2.motivationView(profileId));
+          return;
+        }
+        if (pathname === '/api/v2/motivation/preferences' && method === 'POST') {
+          reply(v2.preferences(profileId, await jsonBody(req)));
+          return;
+        }
+        if (pathname === '/api/v2/leaderboards' && method === 'GET') {
+          send(
+            res,
+            200,
+            v2.leaders(
+              profileId,
+              url.searchParams.get('scope') || 'crew',
+              url.searchParams.get('periodId') || null,
+              integer(url.searchParams.get('offset'), 0, 10000),
+              integer(url.searchParams.get('limit'), 50, 50)
+            )
+          );
+          return;
+        }
+        if (pathname === '/api/v2/runs' && method === 'POST') {
+          reply(v2.start(profileId, await jsonBody(req)));
+          return;
+        }
+        const entry = pathname.match(/^\/api\/v2\/periods\/(v2-\d{4}-\d{2}-\d{2})\/entry$/);
+        if (entry && method === 'POST') {
+          reply(v2.entry(profileId, entry[1], await jsonBody(req)));
+          return;
+        }
+        const ack = pathname.match(/^\/api\/v2\/results\/([a-f0-9-]{36})\/debrief-ack$/);
+        if (ack && method === 'POST') {
+          reply(v2.ack(profileId, ack[1], await jsonBody(req)));
+          return;
+        }
+        const run = pathname.match(
+          /^\/api\/v2\/runs\/([a-f0-9-]{36})(?:\/(commands|result|replay))?$/
+        );
+        if (run) {
+          const [, id, action] = run;
+          if (method === 'GET' && !action) {
+            send(res, 200, v2.get(profileId, id));
+            return;
+          }
+          if (method === 'GET' && action === 'result') {
+            send(res, 200, v2.result(profileId, id));
+            return;
+          }
+          if (method === 'GET' && action === 'replay') {
+            send(res, 200, v2.exactReplay(profileId, id));
+            return;
+          }
+          if (method === 'POST' && action === 'commands') {
+            reply(v2.command(profileId, id, await jsonBody(req)));
+            return;
+          }
+          if (method === 'POST' && action === 'replay') {
+            reply(v2.replay(profileId, id, await jsonBody(req)));
+            return;
+          }
+        }
+        error('NOT_FOUND', 'API v2 ресурс не найден', 404);
+      }
       if (pathname === '/api/bootstrap' && method === 'GET') {
         send(res, 200, service.bootstrap(profileId));
         return;

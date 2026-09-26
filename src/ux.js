@@ -1,11 +1,12 @@
 import { esc, button, heading, scales, note } from './ui.js';
+import { shiftHome } from './motivation-view.js';
 
 const brand = '<span class="wordmark">РЕЙС <b>400</b></span>';
 const crewOptions =
   '<option value="msk-1">М-01 · Москва</option><option value="msk-2">М-02 · Москва</option><option value="spb-1">П-01 · Петербург</option><option value="spb-2">П-02 · Петербург</option>';
 
 export function welcome() {
-  return `<main id="main" class="welcome">${brand}<div class="welcome-grid"><section>${heading('Тренажёр проводника', 'Практика на борту', 'Рабочие ситуации, ваши решения и разбор последствий.')}</section><section class="panel onboarding"><h2>Начнём с одной ситуации</h2><p>Учебный профиль появится автоматически.</p><form id="join-form"><details data-disclosure="crew"><summary>Выбрать учебную бригаду</summary><label for="crew">Бригада</label><select id="crew" name="crew">${crewOptions}</select></details><button class="primary-button" type="submit">Начать тренировку</button></form><details data-disclosure="privacy"><summary>О профиле и сохранении</summary><p>Не вводите личные данные. Профиль хранится на сервере, сессия — 7 дней. После выхода восстановить вход в демо нельзя.</p>${note}</details></section></div><a class="text-back" href="/preview.html">Попробовать новую смену — демо без зачёта →</a></main>`;
+  return `<main id="main" class="welcome">${brand}<div class="welcome-grid"><section>${heading('Тренажёр проводника', 'Практика на борту', 'Рабочие ситуации, ваши решения и разбор последствий.')}</section><section class="panel onboarding"><h2>Начнём с одной ситуации</h2><p>Учебный профиль появится автоматически.</p><form id="join-form"><details data-disclosure="crew"><summary>Выбрать учебную бригаду</summary><label for="crew">Бригада</label><select id="crew" name="crew">${crewOptions}</select></details><button class="primary-button" type="submit">Начать тренировку</button></form><details data-disclosure="privacy"><summary>О профиле и сохранении</summary><p>Не вводите личные данные. Профиль хранится на сервере, сессия — 7 дней. После выхода восстановить вход в демо нельзя.</p>${note}</details></section></div><a class="text-back" href="/preview.html">Архивный UX-прототип — без серверного сохранения →</a></main>`;
 }
 
 export function shell(content, model) {
@@ -16,10 +17,11 @@ export function shell(content, model) {
     ['leaderboard', 'Рейтинг'],
     ['notices', 'Уведомления'],
   ];
-  return `<div class="app-shell"><header class="app-header">${brand}<details class="site-menu" data-disclosure="menu"><summary>Меню${unread ? `<span class="notice-count" aria-label="${unread} непрочитанных">${unread}</span>` : ''}</summary><nav aria-label="Главное меню">${items.map(([id, label]) => `<button class="nav-item ${model.view === id ? 'active' : ''}" data-action="nav" data-view="${id}" aria-label="${label}" ${model.view === id ? 'aria-current="page"' : ''}><span>${label}</span></button>`).join('')}</nav></details></header><div class="workspace"><main id="main">${content}</main><footer class="app-footer">Учебный тренажёр · не официальная аттестация</footer></div></div>`;
+  return `<div class="app-shell"><header class="app-header">${brand}<details class="site-menu" data-disclosure="menu"><summary>Меню${unread ? `<span class="notice-count" aria-label="${unread} непрочитанных">${unread}</span>` : ''}</summary><nav aria-label="Главное меню">${items.map(([id, label]) => `<button class="nav-item ${model.view === id ? 'active' : ''}" data-action="nav" data-view="${id}" aria-label="${label}" ${model.view === id ? 'aria-current="page"' : ''}><span>${label}</span></button>`).join('')}</nav></details></header><div class="workspace"><main id="main">${content}${model.view !== 'run' && model.boot.motivation?.automaticNotice ? `<aside class="panel automatic-notice" aria-label="Напоминание о практике"><h2>${esc(model.boot.motivation.automaticNotice.title)}</h2><p>${esc(model.boot.motivation.automaticNotice.body)}</p>${button('Открыть уведомления', 'nav', 'data-view="notices"', 'text-back')}</aside>` : ''}</main><footer class="app-footer">Учебный тренажёр · не официальная аттестация</footer></div></div>`;
 }
 
 export function home(model) {
+  if (model.boot.motivation) return shiftHome(model);
   const { boot: b, run } = model;
   const p = b.profile;
   const active = run && run.phase !== 'result' ? run : b.activeRun;

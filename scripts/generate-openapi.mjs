@@ -1,4 +1,5 @@
 import { writeFileSync } from 'node:fs';
+import { v2Paths, v2Schemas } from './openapi-v2.js';
 const str = { type: 'string' },
   int = { type: 'integer', minimum: 0 },
   bool = { type: 'boolean' };
@@ -143,13 +144,14 @@ const spec = {
   openapi: '3.1.0',
   info: {
     title: 'РЕЙС 400 — API',
-    version: '2.0.0',
+    version: '2.1.0',
     description:
-      'Synthetic demo. Full response contract and examples: docs/API.md in this repository. No real HR, LMS or billing connection is bundled.',
+      'Server-authoritative v2 ShiftRun and separate practice XP / weekly SP alongside legacy v1. Synthetic training, not for employment decisions. See docs/API-V2.md.',
   },
   servers: [{ url: '/' }],
-  paths,
+  paths: { ...paths, ...v2Paths },
   components: {
+    schemas: v2Schemas,
     securitySchemes: {
       Session: { type: 'apiKey', in: 'cookie', name: 'reis_session' },
       IntegrationKey: { type: 'http', scheme: 'bearer' },
@@ -160,4 +162,4 @@ writeFileSync(
   new URL('../docs/openapi.json', import.meta.url),
   JSON.stringify(spec, null, 2) + '\n'
 );
-console.log(Object.keys(paths).length + ' documented paths');
+console.log(Object.keys(spec.paths).length + ' documented paths');

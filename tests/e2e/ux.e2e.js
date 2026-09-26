@@ -25,6 +25,9 @@ async function join(page) {
   await idle(page);
 }
 async function start(page) {
+  const catalogue = page.locator('[data-disclosure=catalog]');
+  if ((await catalogue.getAttribute('open')) === null)
+    await catalogue.locator(':scope > summary').click();
   await page.locator('[data-action="brief"][data-id="conflict"]').first().click();
   await idle(page);
   await page.locator('[data-action="start"]:not([data-practice])').click();

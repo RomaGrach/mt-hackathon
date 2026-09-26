@@ -1,6 +1,8 @@
 import { readPending, savePending, clearPending, isUncertain } from './recovery.js';
 import { api, requestId, ApiError } from './api.js';
 import { render } from './views.js';
+import { ShiftClient, SHIFT_PENDING_KEY } from './shift-client.js';
+const shiftClient = new ShiftClient();
 
 const app = document.querySelector('#app');
 const model = {
@@ -9,6 +11,10 @@ const model = {
   view: 'home',
   brief: null,
   leaders: null,
+  motivationLeaders: null,
+  rankPeriod: null,
+  rankOffset: 0,
+  auditMessage: null,
   scope: 'crew',
   error: null,
   busy: false,
@@ -23,6 +29,7 @@ let pending = readPending();
 
 function acceptRun(run) {
   model.run = run;
+  shiftClient.run = run?.schemaVersion === 2 ? run : null;
   sampledAt = performance.now();
   sampledServer = run.serverNow;
 }
@@ -35,7 +42,7 @@ function paint(focus = false) {
     model.view +
     ':' +
     (model.view === 'run'
-      ? model.run?.id + ':' + model.run?.phase + ':' + model.run?.nodeId
+      ? model.run?.id + ':' + model.run?.phase + ':' + (model.run?.scene?.id || model.run?.nodeId)
       : model.brief || '');
   const disclosures =
     key === paintedKey
@@ -44,7 +51,25 @@ function paint(focus = false) {
           el.open,
         ])
       : [];
+  const fields =
+    key === paintedKey && !focus
+      ? [...app.querySelectorAll('input[id],select[id]')].map((el) => ({
+          id: el.id,
+          value: el.value,
+          checked: el.checked,
+        }))
+      : [];
   app.innerHTML = render(model);
+  for (const field of fields) {
+    const el = document.getElementById(field.id);
+    if (el) {
+      el.value = field.value;
+      if (el.type === 'checkbox') el.checked = field.checked;
+    }
+  }
+  const mode = app.querySelector('#shift-mode'),
+    variant = app.querySelector('#shift-variant');
+  if (mode && variant) variant.disabled = mode.value !== 'training';
   for (const [id, open] of disclosures) {
     const el = app.querySelector('[data-disclosure="' + CSS.escape(id) + '"]');
     if (el) el.open = open;
@@ -97,6 +122,36 @@ function paint(focus = false) {
     ticker = setInterval(tick, 150);
     tick();
   }
+  if (
+    model.view === 'run' &&
+    model.run?.schemaVersion === 2 &&
+    model.run.criticalWindow?.status === 'open' &&
+    model.run.criticalWindow.deadline !== null
+  ) {
+    const tick = () => {
+      const r = model.run,
+        ms = Math.max(
+          0,
+          r.criticalWindow.deadline - (sampledServer + performance.now() - sampledAt)
+        );
+      const number = app.querySelector('#shift-seconds'),
+        message = app.querySelector('#shift-time-message');
+      if (number) number.textContent = String(Math.ceil(ms / 1000));
+      const text =
+        ms === 0
+          ? 'Срок истёк. Проверяем состояние на сервере.'
+          : ms <= 5000
+            ? 'Осталось не более пяти секунд.'
+            : '';
+      if (message && message.textContent !== text) message.textContent = text;
+      if (ms === 0 && !model.busy && !model.error)
+        perform(async () => {
+          acceptRun(await shiftClient.load(r.id));
+        }, false);
+    };
+    ticker = setInterval(tick, 150);
+    tick();
+  }
   const hash = model.view === 'run' && model.run ? '#run/' + model.run.id : '#' + model.view;
   history.replaceState(null, '', hash);
 }
@@ -109,6 +164,8 @@ async function reloadBoot() {
       model.sessionKnown = true;
       model.boot = null;
       model.run = null;
+      shiftClient.run = null;
+      clearPending(globalThis.sessionStorage, SHIFT_PENDING_KEY);
       pending = null;
       clearPending();
     }
@@ -126,6 +183,8 @@ async function perform(action, focus = true) {
     if (e.status === 401) {
       model.boot = null;
       model.run = null;
+      shiftClient.run = null;
+      clearPending(globalThis.sessionStorage, SHIFT_PENDING_KEY);
       model.view = 'home';
       pending = null;
       clearPending();
@@ -147,7 +206,7 @@ async function perform(action, focus = true) {
   }
 }
 async function mutate(path, body) {
-  if (pending)
+  if (pending || readPending(globalThis.sessionStorage, SHIFT_PENDING_KEY))
     throw new ApiError('Сначала восстановите ответ предыдущего действия.', 'PENDING_COMMAND', 409);
   const command = { path, body: { ...body, requestId: requestId() } };
   savePending(command); // If storage fails, do not transmit an unrecoverable mutation.
@@ -167,14 +226,24 @@ async function mutate(path, body) {
 }
 
 async function sync() {
+  if (readPending(globalThis.sessionStorage, SHIFT_PENDING_KEY)) {
+    acceptRun(await shiftClient.recover());
+    model.view = 'run';
+  }
   if (pending) {
     const command = pending;
     try {
       const result = await api(command.path, { method: 'POST', body: command.body });
       pending = null;
       clearPending();
-      acceptRun(result);
-      model.view = 'run';
+      const run = result.run || result;
+      if (run?.id && run.phase) {
+        acceptRun(run);
+        model.view = 'run';
+      } else {
+        const id = command.path.match(/^\/v2\/results\/([^/]+)/)?.[1];
+        if (id) await openRun(id);
+      }
     } catch (error) {
       if (!isUncertain(error)) {
         pending = null;
@@ -192,7 +261,7 @@ async function sync() {
   }
   await reloadBoot();
   if (model.run && model.view === 'run') acceptRun(await api('/runs/' + model.run.id));
-  if (model.view === 'leaderboard') model.leaders = await api('/leaderboard?scope=' + model.scope);
+  if (model.view === 'leaderboard') await loadRankings();
 }
 
 async function openRun(id) {
@@ -203,7 +272,32 @@ async function openRun(id) {
 async function navigate(view) {
   model.view = view;
   await reloadBoot();
-  if (view === 'leaderboard') model.leaders = await api('/leaderboard?scope=' + model.scope);
+  if (view === 'leaderboard') await loadRankings();
+}
+async function loadRankings() {
+  const period = model.rankPeriod ? '&periodId=' + encodeURIComponent(model.rankPeriod) : '';
+  [model.leaders, model.motivationLeaders] = await Promise.all([
+    api('/leaderboard?scope=' + model.scope),
+    api('/v2/leaderboards?scope=' + model.scope + period + '&offset=' + model.rankOffset),
+  ]);
+}
+async function startShift(options = {}) {
+  if (pending || readPending(globalThis.sessionStorage, SHIFT_PENDING_KEY))
+    throw new ApiError('Сначала восстановите предыдущий запрос.', 'PENDING_COMMAND', 409);
+  const scenarioId = model.boot.shiftCatalog?.[0]?.id;
+  if (!scenarioId) throw new ApiError('Новые смены сейчас отключены.', 'CONTENT_UNAVAILABLE', 503);
+  acceptRun(
+    await shiftClient.start({
+      scenarioId,
+      mode: 'training',
+      timingPolicyId: 'standard',
+      serviceClass: 'standard',
+      ...options,
+    })
+  );
+  model.view = 'run';
+  model.auditMessage = null;
+  await reloadBoot();
 }
 async function choose(id) {
   const r = model.run;
@@ -212,7 +306,7 @@ async function choose(id) {
 }
 
 app.addEventListener('click', (event) => {
-  const element = event.target.closest('[data-action]');
+  const element = event.target.closest('[data-action],[data-shift-action]');
   if (
     !element ||
     element.disabled ||
@@ -220,6 +314,25 @@ app.addEventListener('click', (event) => {
     model.busy
   )
     return;
+  if (element.dataset.shiftAction !== undefined) {
+    const action = model.run?.actions[Number(element.dataset.shiftAction)];
+    if (!action) return;
+    if (
+      action.command === 'abort' &&
+      !confirm('Прервать смену? Учебная история сохранится без зачёта.')
+    )
+      return;
+    if (pending || readPending(globalThis.sessionStorage, SHIFT_PENDING_KEY)) {
+      model.error = 'Сначала восстановите предыдущий запрос.';
+      paint(true);
+      return;
+    }
+    perform(async () => {
+      acceptRun(await shiftClient.send(action));
+      if (model.run.phase === 'result') await reloadBoot();
+    });
+    return;
+  }
   const { action, id, view, practice, index } = element.dataset;
   if (pending && ['start', 'choose', 'continue', 'abort', 'replay'].includes(action)) {
     model.error = 'Ответ предыдущего действия не получен. Обновите состояние перед новым выбором.';
@@ -249,6 +362,7 @@ app.addEventListener('click', (event) => {
     if (action === 'refresh') return sync();
     if (action === 'nav') return navigate(view);
     if (action === 'brief') {
+      if (id?.startsWith('shift:')) return navigate('home');
       model.brief = id;
       model.view = 'brief';
       return;
@@ -273,16 +387,48 @@ app.addEventListener('click', (event) => {
       await reloadBoot();
       return;
     }
+    if (action === 'period-entry') {
+      await mutate('/v2/periods/' + element.dataset.period + '/entry', {
+        action: element.dataset.entry,
+      });
+      await reloadBoot();
+      if (model.view === 'leaderboard') await loadRankings();
+      return;
+    }
+    if (action === 'competitive-start')
+      return startShift({
+        mode: 'assessment',
+        competitionSlotId: model.boot.motivation.period.slotId,
+      });
+    if (action === 'review-start')
+      return startShift({ variantId: element.dataset.variant, timingPolicyId: 'extended' });
+    if (action === 'debrief-ack') {
+      await mutate('/v2/results/' + id + '/debrief-ack', {});
+      return openRun(id);
+    }
+    if (action === 'verify-replay') {
+      const report = await api('/v2/runs/' + id + '/replay');
+      model.auditMessage = report.verified
+        ? 'Журнал воспроизведён точно. Новые награды не выдавались.'
+        : 'Не удалось проверить журнал.';
+      return;
+    }
+    if (action === 'rank-page') {
+      model.rankOffset = Number(element.dataset.offset);
+      return loadRankings();
+    }
     if (action === 'scope') {
       model.scope = id;
-      model.leaders = await api('/leaderboard?scope=' + id);
+      model.rankOffset = 0;
+      await loadRankings();
       return;
     }
     if (action === 'read-all') {
-      model.boot.notices = await api('/notices/read', {
+      await api('/notices/read', {
         method: 'POST',
         body: { ids: model.boot.notices.filter((n) => !n.readAt).map((n) => n.id) },
       });
+      await reloadBoot();
       return;
     }
     if (action === 'export') {
@@ -303,6 +449,8 @@ app.addEventListener('click', (event) => {
       });
       model.boot = null;
       model.run = null;
+      shiftClient.run = null;
+      clearPending(globalThis.sessionStorage, SHIFT_PENDING_KEY);
       model.view = 'home';
       pending = null;
       clearPending();
@@ -314,7 +462,39 @@ app.addEventListener('submit', (event) => {
   if (model.busy) return;
   const crew = event.target.elements.crew?.value;
   const form = event.target.id;
+  const data = Object.fromEntries(new FormData(event.target));
   perform(async () => {
+    if (form === 'shift-start-form')
+      return startShift({
+        mode: data.mode,
+        timingPolicyId: data.timingPolicyId,
+        serviceClass: data.serviceClass,
+        ...(data.mode === 'training' ? { variantId: data.variantId } : {}),
+      });
+    if (form === 'motivation-preferences') {
+      await mutate('/v2/motivation/preferences', {
+        goalDays: Number(data.goalDays),
+        paused: data.paused === 'on',
+        automaticNotices: data.automaticNotices === 'on',
+      });
+      return reloadBoot();
+    }
+    if (form === 'rank-period-form') {
+      model.rankPeriod = data.periodId || null;
+      model.rankOffset = 0;
+      return loadRankings();
+    }
+    if (form === 'shift-replay-form') {
+      acceptRun(
+        await shiftClient.mutate('/v2/runs/' + model.run.id + '/replay', {
+          originEventSeq: Number(data.originEventSeq),
+          requestId: requestId(),
+        })
+      );
+      model.view = 'run';
+      model.auditMessage = null;
+      return reloadBoot();
+    }
     if (form === 'join-form') {
       model.boot = await api('/session', { method: 'POST', body: { crew } });
       model.view = 'home';
@@ -355,9 +535,9 @@ await perform(async () => {
     if (e.status === 401) return;
     throw e;
   }
-  if (pending) {
+  if (pending || readPending(globalThis.sessionStorage, SHIFT_PENDING_KEY)) {
     await sync();
-    return;
+    if (model.view === 'run') return;
   }
   const id = initialHash.match(/^#run\/([a-f0-9-]{36})$/)?.[1];
   if (id) return openRun(id);
@@ -383,4 +563,11 @@ document.addEventListener('visibilitychange', () => {
     perform(async () => {
       acceptRun(await api('/runs/' + model.run.id));
     }, false);
+});
+
+app.addEventListener('change', (event) => {
+  if (event.target.id === 'shift-mode') {
+    const variant = app.querySelector('#shift-variant');
+    if (variant) variant.disabled = event.target.value !== 'training';
+  }
 });
