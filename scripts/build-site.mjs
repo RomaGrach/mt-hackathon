@@ -17,6 +17,7 @@ for (const file of [
   'src/shift-client.js',
   'src/preview-state.js',
   'src/preview-app.js',
+  'src/motivation-view.js',
 ])
   await cp(resolve(file), resolve(output, file));
 await writeFile(

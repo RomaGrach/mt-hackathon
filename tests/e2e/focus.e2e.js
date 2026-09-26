@@ -38,7 +38,8 @@ test('Focus: home has one start action, optional catalogue and one menu', async 
   await idle(page);
   await page.locator('#join-form button').click();
   await idle(page);
-  await expect(page.locator('[data-action=brief]:visible')).toHaveCount(1);
+  await expect(page.locator('#shift-start-form > button:visible')).toHaveCount(1);
+  await expect(page.locator('[data-action=brief]:visible')).toHaveCount(0);
   await expect(page.locator('.nav-item:visible')).toHaveCount(0);
   await shot(page, 'home', info);
   await page.locator('[data-disclosure=catalog] > summary').click();

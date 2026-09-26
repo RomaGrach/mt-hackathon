@@ -1,5 +1,7 @@
 # РЕЙС 400 — правила мотивации
 
+> Реализация задачи #26: [состояние приложения, запуск и проверки](IMPLEMENTATION-08.md), [API v2](API-V2.md). Описания «текущего v1» и планируемых изменений ниже фиксируют исходный этап проектирования; это не статус новой серверной смены.
+
 **26.09.2026 · решение [05 / #23](https://github.com/RomaGrach/mt-hackathon/issues/23) · `gamification-1`.**
 
 [Главная](../README.md) · [Спецификация](SPECIFICATION.md) · [Требования](REQUIREMENTS.md) · [Gameplay](GAMEPLAY.md) · [Предметная модель](DOMAIN-MODEL.md) · [Исследование Duolingo](../research/duolingo-mechanics.md)

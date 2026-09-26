@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { migrateV2 } from './migrations-v2.js';
 import { mkdirSync, chmodSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
@@ -9,7 +10,7 @@ export class Store {
       mkdirSync(dirname(resolve(filename)), { recursive: true, mode: 0o700 });
     this.db = new DatabaseSync(filename);
     const version = this.db.prepare('PRAGMA user_version').get().user_version;
-    if (version > 1) {
+    if (version > 2) {
       this.db.close();
       throw new Error('Unsupported schema version: ' + version);
     }
@@ -30,9 +31,10 @@ export class Store {
         'CREATE INDEX IF NOT EXISTS results_owner ON results(profile_id,completed_at)',
         'CREATE INDEX IF NOT EXISTS events_owner ON events(profile_id,id)',
         'CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at)',
-        'PRAGMA user_version=1',
+        ...(version === 0 ? ['PRAGMA user_version=1'] : []),
       ].join(';')
     );
+    if (version < 2) this.transaction(() => migrateV2(this.db));
     if (filename !== ':memory:' && process.platform !== 'win32') chmodSync(filename, 0o600);
   }
   get(sql, ...args) {

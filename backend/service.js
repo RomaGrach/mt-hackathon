@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
+import { ShiftService } from './shift-service.js';
 import {
   GameError,
   createState,
@@ -22,6 +23,12 @@ export class Service {
     this.clock = clock;
     this.catalog = catalog;
     store.publish(catalog, clock());
+    this.shifts = new ShiftService(store, { clock });
+    store.transaction(() => {
+      for (const row of store.all('SELECT id FROM profiles'))
+        for (const id of profileView(store, row.id, catalog, clock()).achievements)
+          store.run('INSERT OR IGNORE INTO legacy_awards VALUES(?,?,?)', row.id, id, clock());
+    });
   }
   session(token) {
     if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return null;
@@ -79,17 +86,23 @@ export class Service {
       refreshMotivation(this.store, profileId, this.catalog, this.clock())
     );
     const active = this.store.get(
-      "SELECT id,scenario_id FROM runs WHERE profile_id=? AND phase IN ('decision','feedback') ORDER BY updated_at DESC LIMIT 1",
+      "SELECT id,scenario_id FROM runs WHERE profile_id=? AND phase<>'result' ORDER BY updated_at DESC LIMIT 1",
       profileId
     );
+    const profile = profileView(this.store, profileId, this.catalog, this.clock());
+    const motivation = this.shifts.motivationView(profileId);
     return {
-      profile: profileView(this.store, profileId, this.catalog, this.clock()),
+      profile,
+      motivation,
+      shiftCatalog: this.shifts.catalog(),
       catalog: catalogCards(),
       crews: CREWS,
       achievements: ACHIEVEMENTS,
       challenge,
       activeRun: active ? { id: active.id, scenarioId: active.scenario_id } : null,
-      notices: this.notices(profileId),
+      notices: this.notices(profileId).filter(
+        (n) => profile.history.length || n.id.startsWith(profileId + ':v2:')
+      ),
       serverNow: this.clock(),
       mode: 'synthetic-demo',
     };
@@ -111,7 +124,7 @@ export class Service {
   }
   ensureNoActive(profileId) {
     const active = this.store.get(
-      "SELECT id FROM runs WHERE profile_id=? AND phase IN ('decision','feedback') LIMIT 1",
+      "SELECT id FROM runs WHERE profile_id=? AND phase<>'result' LIMIT 1",
       profileId
     );
     assert(!active, 'ACTIVE_RUN', 'Сначала продолжите или завершите текущую попытку', 409);
@@ -235,6 +248,13 @@ export class Service {
     });
     refreshMotivation(this.store, profileId, this.catalog, this.clock());
     const after = profileView(this.store, profileId, this.catalog, this.clock()).achievements;
+    for (const achievement of after)
+      this.store.run(
+        'INSERT OR IGNORE INTO legacy_awards VALUES(?,?,?)',
+        profileId,
+        achievement,
+        this.clock()
+      );
     for (const badge of ACHIEVEMENTS.filter(
       (a) => after.includes(a.id) && !before.includes(a.id)
     )) {
@@ -273,6 +293,7 @@ export class Service {
       JSON.stringify([runId, kind, body.revision, body.optionId]),
       () => {
         const { state, scenario } = this.load(profileId, runId);
+        assert(state.schemaVersion !== 2, 'USE_V2_API', 'Для этой смены используйте API v2', 409);
         assert(
           state.revision === body.revision,
           'STALE_REVISION',
@@ -293,6 +314,12 @@ export class Service {
     );
   }
   getRun(profileId, runId) {
+    const version = this.store.get(
+      "SELECT json_extract(state, '$.schemaVersion') AS version FROM runs WHERE id=? AND profile_id=?",
+      runId,
+      profileId
+    )?.version;
+    if (version != null && version !== 1) return this.shifts.get(profileId, runId);
     return this.store.transaction(() => {
       let { state, scenario } = this.load(profileId, runId);
       if (state.phase === 'decision' && state.deadline !== null && state.deadline <= this.clock()) {
@@ -307,6 +334,7 @@ export class Service {
     return this.command(profileId, requestId, JSON.stringify(['replay', runId, index]), () => {
       this.ensureNoActive(profileId);
       const { state, scenario } = this.load(profileId, runId);
+      assert(state.schemaVersion !== 2, 'USE_V2_API', 'Для этой смены используйте API v2', 409);
       return this.insertRun(
         profileId,
         scenario,
@@ -318,12 +346,12 @@ export class Service {
   sweep(profileId = null) {
     const rows = profileId
       ? this.store.all(
-          "SELECT id,profile_id FROM runs WHERE profile_id=? AND phase='decision' AND deadline<=? LIMIT 100",
+          "SELECT id,profile_id FROM runs WHERE profile_id=? AND phase IN ('decision','scene') AND deadline<=? LIMIT 100",
           profileId,
           this.clock()
         )
       : this.store.all(
-          "SELECT id,profile_id FROM runs WHERE phase='decision' AND deadline<=? LIMIT 100",
+          "SELECT id,profile_id FROM runs WHERE phase IN ('decision','scene') AND deadline<=? LIMIT 100",
           this.clock()
         );
     for (const row of rows) this.getRun(row.profile_id, row.id);
@@ -331,7 +359,7 @@ export class Service {
   cleanup() {
     const now = this.clock();
     this.store.run('DELETE FROM sessions WHERE expires_at<=?', now);
-    this.store.run('DELETE FROM requests WHERE at<?', now - 7 * 86400000);
+    // Receipts live as long as the profile: old v2 requests must never become new mutations.
   }
   notices(profileId) {
     return this.store.all(
@@ -366,6 +394,8 @@ export class Service {
   exportProfile(profileId) {
     return {
       exportedAt: new Date(this.clock()).toISOString(),
+      notForEmploymentDecisions: true,
+      motivationV2: this.shifts.motivationView(profileId, false),
       profile: profileView(this.store, profileId, this.catalog, this.clock()),
       results: this.store
         .all('SELECT document FROM results WHERE profile_id=? ORDER BY id', profileId)
@@ -377,8 +407,23 @@ export class Service {
     };
   }
   deleteProfile(profileId) {
-    this.store.run('DELETE FROM profiles WHERE id=?', profileId);
-    return { deleted: true };
+    return this.store.transaction(() => {
+      // Redact the deleted participant without recomputing anyone else's historical rank.
+      for (const row of this.store.all(
+        'SELECT id,archive FROM motivation_periods WHERE archive IS NOT NULL'
+      )) {
+        const archive = JSON.parse(row.archive),
+          entries = archive.entries.filter((e) => e.profileId !== profileId);
+        if (entries.length !== archive.entries.length)
+          this.store.run(
+            'UPDATE motivation_periods SET archive=? WHERE id=?',
+            JSON.stringify({ ...archive, entries }),
+            row.id
+          );
+      }
+      this.store.run('DELETE FROM profiles WHERE id=?', profileId);
+      return { deleted: true };
+    });
   }
   integrationResults(cursor = 0, limit = 100) {
     const rows = this.store.all(
@@ -410,6 +455,8 @@ export class Service {
         const p = profileView(this.store, id, this.catalog, this.clock());
         return {
           employeeId: p.id,
+          notForEmploymentDecisions: true,
+          practiceV2: this.shifts.motivationView(id, false),
           alias: p.name,
           crew: p.crew,
           depot: p.depot,
