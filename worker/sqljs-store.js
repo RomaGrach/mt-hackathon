@@ -1,42 +1,43 @@
-import { DatabaseSync } from 'node:sqlite';
-import { migrateV2 } from './migrations-v2.js';
-import { BASE_STATEMENTS } from './schema.js';
-import { mkdirSync, chmodSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { BASE_STATEMENTS } from '../backend/schema.js';
+import { migrateV2 } from '../backend/migrations-v2.js';
 
-/** SQLite adapter. Domain code lives in engine/progress/service, not in HTTP handlers. */
-export class Store {
-  constructor(filename = 'data/reis400.sqlite') {
-    if (filename !== ':memory:')
-      mkdirSync(dirname(resolve(filename)), { recursive: true, mode: 0o700 });
-    this.db = new DatabaseSync(filename);
-    const version = this.db.prepare('PRAGMA user_version').get().user_version;
-    if (version > 2) {
-      this.db.close();
-      throw new Error('Unsupported schema version: ' + version);
-    }
-    this.db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;');
+// Synchronous SQL interface for the unchanged v1/v2 services. Persistence is owned by
+// the D1 compare-and-swap boundary in sites-game.js, never by an isolate-local file.
+export class SqlJsStore {
+  constructor(SQL, image) {
+    this.db = image ? new SQL.Database(image) : new SQL.Database();
+    const version = this.db.exec('PRAGMA user_version')[0]?.values[0][0] ?? 0;
+    if (version > 2) throw new Error('Unsupported schema version: ' + version);
+    this.db.exec('PRAGMA foreign_keys=ON');
     this.db.exec(
       [...BASE_STATEMENTS, ...(version === 0 ? ['PRAGMA user_version=1'] : [])].join(';')
     );
     if (version < 2) this.transaction(() => migrateV2(this.db));
-    if (filename !== ':memory:' && process.platform !== 'win32') chmodSync(filename, 0o600);
-  }
-  get(sql, ...args) {
-    return this.db.prepare(sql).get(...args);
   }
   all(sql, ...args) {
-    return this.db.prepare(sql).all(...args);
+    const statement = this.db.prepare(sql);
+    try {
+      statement.bind(args);
+      const rows = [];
+      while (statement.step()) rows.push(statement.getAsObject());
+      return rows;
+    } finally {
+      statement.free();
+    }
+  }
+  get(sql, ...args) {
+    return this.all(sql, ...args)[0];
   }
   run(sql, ...args) {
-    return this.db.prepare(sql).run(...args);
+    this.db.run(sql, args);
+    return { changes: this.db.getRowsModified() };
   }
   transaction(fn) {
     this.db.exec('BEGIN IMMEDIATE');
     try {
-      const value = fn();
+      const result = fn();
       this.db.exec('COMMIT');
-      return value;
+      return result;
     } catch (error) {
       this.db.exec('ROLLBACK');
       throw error;
@@ -69,6 +70,9 @@ export class Store {
     return JSON.parse(
       this.get('SELECT document FROM scenarios WHERE id=? AND version=?', id, version).document
     );
+  }
+  export() {
+    return this.db.export();
   }
   close() {
     this.db.close();

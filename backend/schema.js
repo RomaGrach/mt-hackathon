@@ -1,0 +1,16 @@
+export const BASE_STATEMENTS = [
+  'CREATE TABLE IF NOT EXISTS profiles (id TEXT PRIMARY KEY, alias TEXT NOT NULL, crew TEXT NOT NULL, depot TEXT NOT NULL, company TEXT NOT NULL, created_at INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, expires_at INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS scenarios (id TEXT NOT NULL, version TEXT NOT NULL, document TEXT NOT NULL, published_at INTEGER NOT NULL, PRIMARY KEY(id,version))',
+  'CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, scenario_id TEXT NOT NULL, scenario_version TEXT NOT NULL, state TEXT NOT NULL, phase TEXT NOT NULL, deadline INTEGER, revision INTEGER NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, FOREIGN KEY(scenario_id,scenario_version) REFERENCES scenarios(id,version))',
+  'CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT UNIQUE NOT NULL REFERENCES runs(id) ON DELETE CASCADE, profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, scenario_id TEXT NOT NULL, scenario_version TEXT NOT NULL, points INTEGER NOT NULL, passed INTEGER NOT NULL, practice INTEGER NOT NULL, completed_at INTEGER NOT NULL, document TEXT NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE, kind TEXT NOT NULL, node_id TEXT, choice_id TEXT, at INTEGER NOT NULL, data TEXT NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS notices (id TEXT PRIMARY KEY, profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, kind TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, at INTEGER NOT NULL, read_at INTEGER, target TEXT)',
+  'CREATE TABLE IF NOT EXISTS bonuses (id TEXT PRIMARY KEY, profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, amount INTEGER NOT NULL, reason TEXT NOT NULL, expires_at INTEGER NOT NULL, at INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS requests (profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, request_id TEXT NOT NULL, signature TEXT NOT NULL, response TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(profile_id, request_id))',
+  'CREATE INDEX IF NOT EXISTS runs_due ON runs(phase,deadline)',
+  'CREATE INDEX IF NOT EXISTS runs_owner ON runs(profile_id,updated_at)',
+  'CREATE INDEX IF NOT EXISTS results_owner ON results(profile_id,completed_at)',
+  'CREATE INDEX IF NOT EXISTS events_owner ON events(profile_id,id)',
+  'CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at)',
+];

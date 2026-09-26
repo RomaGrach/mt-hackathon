@@ -1,0 +1,51 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "9938ebdc-7f06-4ad1-bf67-083ec2daaafb",
+  "prevId": "47b486c7-7ce2-40e0-ade4-1c571eeb92a1",
+  "tables": {
+    "game_snapshot": {
+      "name": "game_snapshot",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "image": {
+          "name": "image",
+          "type": "blob",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "game_snapshot_id_check": {
+          "name": "game_snapshot_id_check",
+          "value": "id = 1"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  }
+}

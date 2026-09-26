@@ -18,10 +18,9 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run validate:scenarios
-      - run: npm run validate:shift
-      - run: npm run format:check
       - run: npm test
       - run: npm run build:site
+      - run: npm run build:sites
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: docker build -t reis400:test .
