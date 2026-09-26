@@ -1,0 +1,157 @@
+{
+  "fixtureVersion": "issue21-1",
+  "purpose": "Documentation checkpoint, public projection and expected traces; not a published scenario or complete replay archive.",
+  "omittedPersistence": ["immutableContentBytes", "immutableRulesBytes", "initialSnapshot", "completeEventLog"],
+  "serverCheckpoint": {
+    "schemaVersion": 2,
+    "engineVersion": "shift-2",
+    "id": "demo-shift-001",
+    "profileId": "synthetic-profile-001",
+    "scenarioId": "text-shift-demo",
+    "contentVersion": "design-1",
+    "rulesVersion": "demo-rubric-1",
+    "variantId": "blocked-aisle",
+    "variantSelection": {"algorithm": "authored-selection-v1", "seed": null},
+    "mode": "training",
+    "timingPolicy": {"id": "standard", "durationMs": 20000},
+    "status": "active",
+    "phase": "feedback",
+    "stage": "service",
+    "revision": 4,
+    "step": 2,
+    "maxSteps": 16,
+    "context": {"wagonId": "wagon-3", "zoneId": "saloon", "serviceClass": "standard", "servicePolicyId": "unverified-demo-only"},
+    "inspection": {"status": "passed", "eventId": "e-inspection"},
+    "focusIncidentId": "a-seat",
+    "actors": {
+      "p1": {"role": "passenger", "label": "Пассажир у места 18", "knownFacts": ["return-promised"], "revealed": true},
+      "p2": {"role": "passenger", "label": "Пассажир у места 19", "knownFacts": [], "revealed": true},
+      "p3": {"role": "passenger", "label": "Владелец багажа", "knownFacts": [], "revealed": false},
+      "crew1": {"role": "crew", "label": "Коллега", "knownFacts": [], "revealed": true}
+    },
+    "incidents": {
+      "a-seat": {"discovery": "revealed", "status": "open", "severity": "routine", "sceneId": "a-verify", "actorIds": ["p1", "p2"], "mandatory": true, "handoff": {"status": "none", "requestId": null, "recipientActorId": "crew1", "ackEventId": null, "completionEventId": null}},
+      "b-aisle": {"discovery": "hidden", "status": "open", "severity": "routine", "sceneId": "b-observe", "actorIds": ["p3"], "mandatory": true, "handoff": {"status": "none", "requestId": null, "recipientActorId": null, "ackEventId": null, "completionEventId": null}}
+    },
+    "commitments": {
+      "return-p1": {"incidentId": "a-seat", "actorId": "p1", "status": "open", "dueStep": 7, "mandatory": true, "createdByEventId": "e-promise", "fulfilledByEventId": null}
+    },
+    "observations": [{"id": "obs-seat-dispute", "text": "У мест 18–19 пассажиры спорят о размещении.", "revealedByEventId": "e-inspection"}],
+    "flags": {"serviceInfoChecked": true, "bagBlocksAisle": true},
+    "scales": {"loyalty": 75, "safety": 75},
+    "criteria": [
+      {"id": "predeparture", "competency": "protocol", "possible": 1, "earned": 1, "status": "assessed", "evidenceEventIds": ["e-inspection"]},
+      {"id": "early-discovery", "competency": "protocol", "possible": 1, "earned": 0, "status": "assessed", "evidenceEventIds": []},
+      {"id": "verify-documents", "competency": "protocol", "possible": 1, "earned": 0, "status": "assessed", "evidenceEventIds": []},
+      {"id": "acknowledge-person", "competency": "empathy", "possible": 1, "earned": 1, "status": "assessed", "evidenceEventIds": ["e-promise"]},
+      {"id": "confirmed-handoff", "competency": "teamwork", "possible": 1, "earned": 0, "status": "assessed", "evidenceEventIds": []},
+      {"id": "return-to-person", "competency": "teamwork", "possible": 1, "earned": 0, "status": "assessed", "evidenceEventIds": []},
+      {"id": "timely-safety", "competency": "speed", "possible": 1, "earned": 0, "status": "assessed", "evidenceEventIds": []}
+    ],
+    "criticalErrors": [],
+    "scheduledEvents": [
+      {"id": "b-escalate", "dueStep": 4, "priority": 20, "incidentId": "b-aisle", "guard": "incident-not-terminal", "type": "escalate-and-queue-window"},
+      {"id": "return-due", "dueStep": 7, "priority": 30, "commitmentId": "return-p1", "guard": "commitment-open", "type": "breach-commitment"}
+    ],
+    "criticalWindow": null,
+    "feedback": {"eventId": "e-promise", "text": "Вы сообщили, что вернётесь к пассажиру. Обращение остаётся открытым."},
+    "resumeState": null,
+    "createdAt": 1790423940000,
+    "updatedAt": 1790423950000,
+    "lastObservedServerAt": 1790423950000,
+    "finishedAt": null,
+    "lastEventSeq": 6,
+    "origin": null
+  },
+  "publicCheckpoint": {
+    "schemaVersion": 2,
+    "engineVersion": "shift-2",
+    "id": "demo-shift-001",
+    "revision": 4,
+    "mode": "training",
+    "timingPolicy": {"id": "standard", "durationMs": 20000},
+    "status": "active",
+    "phase": "feedback",
+    "stage": "service",
+    "step": 2,
+    "context": {"wagonId": "wagon-3", "zoneId": "saloon", "serviceClass": "standard"},
+    "scales": {"loyalty": 75, "safety": 75},
+    "actors": [{"id": "p1", "label": "Пассажир у места 18"}, {"id": "p2", "label": "Пассажир у места 19"}, {"id": "crew1", "label": "Коллега"}],
+    "incidents": [{"id": "a-seat", "status": "open", "label": "Обращение у мест 18–19"}],
+    "observations": [{"id": "obs-seat-dispute", "text": "У мест 18–19 пассажиры спорят о размещении."}],
+    "commitments": [{"id": "return-p1", "actorId": "p1", "status": "open", "dueStep": 7, "label": "Вернуться к пассажиру у места 18"}],
+    "feedback": {"text": "Вы сообщили, что вернётесь к пассажиру. Обращение остаётся открытым.", "impact": {"loyalty": 5, "safety": 0}},
+    "scene": null,
+    "criticalWindow": null,
+    "actions": [{"command": "continue", "label": "Продолжить"}],
+    "result": null,
+    "serverNow": 1790423950000
+  },
+  "commandExamples": [
+    {"path": "/api/v2/runs/demo-shift-001/commands", "body": {"requestId": "example-continue-001", "revision": 4, "command": {"type": "continue"}}},
+    {"path": "/api/v2/runs/demo-shift-001/commands", "body": {"requestId": "example-inspect-001", "revision": 5, "command": {"type": "inspect", "zoneId": "saloon", "actionId": "inspect-saloon"}}}
+  ],
+  "criticalBoundary": {
+    "openedAt": 1790424000000,
+    "deadline": 1790424020000,
+    "durationMs": 20000,
+    "windowId": "critical-b-1",
+    "cases": [{"acceptedAt": 1790424019999, "expected": "choice"}, {"acceptedAt": 1790424020000, "expected": "timeout"}, {"acceptedAt": 1790424020001, "expected": "timeout"}]
+  },
+  "sameStepOrder": [{"id": "a-ack", "dueStep": 4, "priority": 10}, {"id": "b-escalate", "dueStep": 4, "priority": 20}, {"id": "return-due", "dueStep": 7, "priority": 30}],
+  "traces": [
+    {
+      "id": "early-discovery-success",
+      "initialScales": {"loyalty": 70, "safety": 75},
+      "steps": [
+        {"step": 1, "action": "inspect-predeparture", "delta": [0, 0], "criteria": ["predeparture"]},
+        {"step": 2, "action": "acknowledge-and-promise", "delta": [5, 0], "criteria": ["acknowledge-person"]},
+        {"step": 3, "action": "inspect-saloon", "delta": [0, 5], "criteria": ["early-discovery"]},
+        {"step": 4, "action": "clear-aisle", "delta": [0, 10], "criteria": ["timely-safety"], "automaticEvents": ["b-escalate-skipped-terminal"]},
+        {"step": 5, "action": "verify-and-request", "delta": [0, 0], "criteria": ["verify-documents"]},
+        {"step": 6, "action": "wait", "delta": [0, 0], "criteria": ["confirmed-handoff"], "automaticEvents": ["a-ack-accepted"], "aStatusAfter": "waiting"},
+        {"step": 7, "action": "confirm-and-return-p1", "delta": [10, 0], "criteria": ["return-to-person"], "automaticEvents": ["return-due-skipped-fulfilled"]}
+      ],
+      "expected": {"loyalty": 85, "safety": 90, "episodePoints": 70, "passed": true, "criticalErrors": [], "inspection": "passed", "a": "resolved", "b": "resolved", "commitment": "fulfilled", "handoff": "completed"}
+    },
+    {
+      "id": "unsafe-deferral",
+      "initialScales": {"loyalty": 70, "safety": 75},
+      "steps": [
+        {"step": 1, "action": "inspect-predeparture", "delta": [0, 0], "criteria": ["predeparture"]},
+        {"step": 2, "action": "acknowledge-and-promise", "delta": [5, 0], "criteria": ["acknowledge-person"]},
+        {"step": 3, "action": "verify-and-request", "delta": [0, 0], "criteria": ["verify-documents"]},
+        {"step": 4, "action": "wait", "delta": [0, -10], "criteria": ["confirmed-handoff"], "automaticEvents": ["a-ack-accepted", "b-escalate"], "aStatusAfter": "waiting"},
+        {"step": 5, "action": "unsafe-deferral", "delta": [0, -30], "criteria": [], "criticalError": "unsafe_deferral"},
+        {"step": 6, "action": "confirm-and-return-p1", "delta": [10, 0], "criteria": ["return-to-person"]}
+      ],
+      "expected": {"loyalty": 85, "safety": 35, "episodePoints": 50, "passed": false, "criticalErrors": ["unsafe_deferral"], "inspection": "passed", "a": "resolved", "b": "failed", "commitment": "fulfilled", "handoff": "completed"}
+    },
+    {
+      "id": "critical-timeout",
+      "initialScales": {"loyalty": 70, "safety": 75},
+      "steps": [
+        {"step": 1, "action": "inspect-predeparture", "delta": [0, 0], "criteria": ["predeparture"]},
+        {"step": 2, "action": "acknowledge-and-promise", "delta": [5, 0], "criteria": ["acknowledge-person"]},
+        {"step": 3, "action": "verify-and-request", "delta": [0, 0], "criteria": ["verify-documents"]},
+        {"step": 4, "action": "wait", "delta": [0, -10], "criteria": ["confirmed-handoff"], "automaticEvents": ["a-ack-accepted", "b-escalate"], "aStatusAfter": "waiting"},
+        {"step": 5, "action": "timeout", "delta": [0, -25], "criteria": [], "criticalError": "critical_timeout"},
+        {"step": 6, "action": "confirm-and-return-p1", "delta": [10, 0], "criteria": ["return-to-person"]}
+      ],
+      "expected": {"loyalty": 85, "safety": 40, "episodePoints": 50, "passed": false, "criticalErrors": ["critical_timeout"], "inspection": "passed", "a": "resolved", "b": "failed", "commitment": "fulfilled", "handoff": "completed"}
+    },
+    {
+      "id": "late-safe-recovery",
+      "initialScales": {"loyalty": 70, "safety": 75},
+      "steps": [
+        {"step": 1, "action": "inspect-predeparture", "delta": [0, 0], "criteria": ["predeparture"]},
+        {"step": 2, "action": "acknowledge-and-promise", "delta": [5, 0], "criteria": ["acknowledge-person"]},
+        {"step": 3, "action": "verify-and-request", "delta": [0, 0], "criteria": ["verify-documents"]},
+        {"step": 4, "action": "wait", "delta": [0, -10], "criteria": ["confirmed-handoff"], "automaticEvents": ["a-ack-accepted", "b-escalate"], "aStatusAfter": "waiting"},
+        {"step": 5, "action": "clear-aisle-before-deadline", "delta": [0, 10], "criteria": ["timely-safety"]},
+        {"step": 6, "action": "confirm-and-return-p1", "delta": [10, 0], "criteria": ["return-to-person"]}
+      ],
+      "expected": {"loyalty": 85, "safety": 75, "episodePoints": 60, "passed": true, "criticalErrors": [], "inspection": "passed", "a": "resolved", "b": "resolved", "commitment": "fulfilled", "handoff": "completed"}
+    }
+  ]
+}
