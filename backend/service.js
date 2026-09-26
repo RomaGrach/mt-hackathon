@@ -18,17 +18,26 @@ const assert = (condition, code, message, status = 400) => {
 };
 
 export class Service {
-  constructor(store, { clock = Date.now, catalog = defaultCatalog } = {}) {
+  constructor(
+    store,
+    {
+      clock = Date.now,
+      catalog = defaultCatalog,
+      clockMode = 'elapsed',
+      backfillLegacy = true,
+    } = {}
+  ) {
     this.store = store;
     this.clock = clock;
     this.catalog = catalog;
     store.publish(catalog, clock());
-    this.shifts = new ShiftService(store, { clock });
-    store.transaction(() => {
-      for (const row of store.all('SELECT id FROM profiles'))
-        for (const id of profileView(store, row.id, catalog, clock()).achievements)
-          store.run('INSERT OR IGNORE INTO legacy_awards VALUES(?,?,?)', row.id, id, clock());
-    });
+    this.shifts = new ShiftService(store, { clock, clockMode });
+    if (backfillLegacy)
+      store.transaction(() => {
+        for (const row of store.all('SELECT id FROM profiles'))
+          for (const id of profileView(store, row.id, catalog, clock()).achievements)
+            store.run('INSERT OR IGNORE INTO legacy_awards VALUES(?,?,?)', row.id, id, clock());
+      });
   }
   session(token) {
     if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return null;

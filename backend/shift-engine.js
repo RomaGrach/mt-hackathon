@@ -6,6 +6,23 @@ const fail = (code, message, status = 409) => {
   throw new GameError(code, message, status);
 };
 const offered = (command, label, fields = {}) => ({ command, label, ...fields });
+export function actionSeconds(action) {
+  if (action.command === 'inspect') return 60;
+  if (action.command === 'wait') return 30;
+  if (action.command !== 'choose') return 0;
+  return (
+    {
+      'inspect-predeparture': 60,
+      'skip-predeparture': 15,
+      'acknowledge-and-promise': 30,
+      acknowledge: 30,
+      'verify-service-info': 60,
+      'verify-and-request': 45,
+      'confirm-and-return-p1': 30,
+      'confirm-and-return-p2': 30,
+    }[action.actionId] ?? 45
+  );
+}
 const policy = (s, c) => c.policies[s.context.serviceClass];
 const variant = (s, c) => c.variants[s.variantId];
 function event(s, type, now, payload = {}, visible = null, causeEventId = null) {
@@ -45,6 +62,10 @@ export function scheduleShiftEvent(s, e) {
     s.processedEventIds.includes(e.eventId)
   )
     throw new Error('Duplicate scheduled event');
+  if (s.clockMode === 'elapsed' && e.dueSeconds == null) {
+    e.dueSeconds =
+      s.simulationSeconds + (s.currentActionSeconds || 0) + (e.type === 'handoff-ack' ? 60 : 300);
+  }
   s.scheduledEvents.push(copy(e));
 }
 function task(s, id, label, source, now, fields = {}) {
@@ -157,15 +178,19 @@ function activateService(s, c, now, e) {
   });
 }
 function processDue(s, c, now) {
+  const isDue = (e) =>
+    s.clockMode === 'elapsed' && e.dueSeconds != null
+      ? e.dueSeconds <= s.simulationSeconds
+      : e.dueStep <= s.step;
   const due = s.scheduledEvents
-    .filter((e) => e.dueStep <= s.step)
+    .filter(isDue)
     .sort(
       (a, b) =>
-        a.dueStep - b.dueStep ||
+        (a.dueSeconds ?? a.dueStep) - (b.dueSeconds ?? b.dueStep) ||
         a.priority - b.priority ||
         (a.eventId < b.eventId ? -1 : a.eventId > b.eventId ? 1 : 0)
     );
-  s.scheduledEvents = s.scheduledEvents.filter((e) => e.dueStep > s.step);
+  s.scheduledEvents = s.scheduledEvents.filter((e) => !isDue(e));
   for (const pending of due) {
     if (s.processedEventIds.includes(pending.eventId)) continue;
     s.processedEventIds.push(pending.eventId);
@@ -273,6 +298,7 @@ export function createShift(
     serviceClass = 'standard',
     competition = null,
     origin = null,
+    clockMode = null,
   },
   now
 ) {
@@ -325,6 +351,8 @@ export function createShift(
     stage: 'inspection',
     revision: 0,
     step: 0,
+    clockMode,
+    simulationSeconds: 0,
     maxSteps: c.maxSteps,
     inspection: { status: 'pending', eventId: null },
     focusIncidentId: null,
@@ -445,7 +473,7 @@ function availableActions(s, c) {
       const i = s.incidents['a-seat'];
       if (i.sceneId === 'a-listen')
         actions = [
-          ...(s.step < 7
+          ...((s.clockMode === 'elapsed' ? !s.tasks['return-p1'] : s.step < 7)
             ? [choose('acknowledge-and-promise', 'Уточнить обращение и пообещать вернуться')]
             : []),
           choose('acknowledge', 'Уточнить обращение без обещания срока'),
@@ -493,7 +521,20 @@ function availableActions(s, c) {
   }
   if (s.mode === 'training' && s.phase !== 'briefing') actions.push(a('pause', 'Учебная пауза'));
   actions.push(a('abort', 'Прервать смену'));
-  return actions;
+  if (s.phase === 'scene' && s.stage === 'service' && !s.criticalWindow) {
+    for (const i of Object.values(s.incidents))
+      if (i.discovery === 'revealed' && !terminal(i) && i.id !== s.focusIncidentId)
+        actions.push(a('focus', i.label, { incidentId: i.id }));
+  }
+  return actions.map((x) => ({
+    ...x,
+    durationSeconds:
+      s.clockMode === 'elapsed'
+        ? actionSeconds(x)
+        : ['choose', 'inspect', 'wait'].includes(x.command)
+          ? 30
+          : 0,
+  }));
 }
 export function publicShiftState(s, c, now) {
   const visible = Object.values(s.incidents).filter((i) => i.discovery === 'revealed');
@@ -511,6 +552,9 @@ export function publicShiftState(s, c, now) {
     phase: s.phase,
     stage: s.stage,
     step: s.step,
+    simulationSeconds: s.clockMode === 'elapsed' ? s.simulationSeconds : s.step * 30,
+    clockMode: s.clockMode || 'legacy',
+    focusIncidentId: s.focusIncidentId,
     context: {
       wagonId: s.context.wagonId,
       zoneId: s.context.zoneId,
@@ -538,6 +582,7 @@ export function publicShiftState(s, c, now) {
         status: t.status,
         actorId: t.actorId || null,
         dueStep: t.dueStep ?? null,
+        dueSeconds: t.dueSeconds ?? (t.dueStep == null ? null : t.dueStep * 30),
         overdue: !!t.breachedByEventId && t.status !== 'completed',
       })),
     scene: sceneFor(s, c),
@@ -706,6 +751,9 @@ export function reduceShift(state, command, c, acceptedAt, requestId = null) {
   const before = copy(s.scales);
   const startLog = s.log.length;
   const working = ['choose', 'inspect', 'wait', '_timeout'].includes(command.type);
+  s.currentActionSeconds = working
+    ? actionSeconds({ command: command.type, actionId: command.actionId })
+    : 0;
   const e = event(
     s,
     isTimeout ? 'critical_timeout' : working ? 'action' : 'navigation',
@@ -840,19 +888,28 @@ export function reduceShift(state, command, c, acceptedAt, requestId = null) {
           eventId: e.eventId,
         },
         now,
-        { incidentId: 'a-seat', actorId: 'p1', dueStep: promise ? 7 : null }
+        {
+          incidentId: 'a-seat',
+          actorId: 'p1',
+          dueStep: promise ? (s.clockMode === 'elapsed' ? s.step + 6 : 7) : null,
+          ...(promise && s.clockMode === 'elapsed'
+            ? { dueSeconds: s.simulationSeconds + s.currentActionSeconds + 300 }
+            : {}),
+        }
       );
       if (promise)
         scheduleShiftEvent(s, {
           eventId: 'return-due',
           type: 'task-due',
           taskId: 'return-p1',
-          dueStep: 7,
+          dueStep: s.clockMode === 'elapsed' ? s.step + 6 : 7,
           priority: 30,
           causeEventId: e.eventId,
         });
       text = promise
-        ? 'Пассажир у места 18 ждёт возврата до конца рабочего шага 7. Обращение пока не решено.'
+        ? s.clockMode === 'elapsed'
+          ? 'Вы обещали вернуться к пассажиру у места 18 через 5 минут игрового времени. Срок виден в списке обещаний.'
+          : 'Пассажир у места 18 ждёт возврата до конца рабочего шага 7. Обращение пока не решено.'
         : 'Обращение уточнено. После проверки нужно сообщить результат тому же пассажиру.';
     } else if (id === 'verify-service-info') {
       s.flags.serviceInfoChecked = true;
@@ -996,6 +1053,15 @@ export function reduceShift(state, command, c, acceptedAt, requestId = null) {
     e.visible.explanation = teaching?.why || null;
     e.visible.alternative = teaching?.alternative || null;
     e.stepAfter = ++s.step;
+    if (s.clockMode === 'elapsed') {
+      s.simulationSeconds += s.currentActionSeconds;
+      e.payload.durationSeconds = s.currentActionSeconds;
+      e.payload.simulationSeconds = s.simulationSeconds;
+      explanation = explanation
+        .replace(/рабочий шаг/g, 'отрезок игрового времени')
+        .replace(/рабочие шаги/g, 'игровое время')
+        .replace(/шаги/g, 'время');
+    }
     e.payload.before = before;
     e.payload.after = copy(s.scales);
     processDue(s, c, now);

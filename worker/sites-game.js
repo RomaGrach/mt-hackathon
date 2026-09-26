@@ -50,7 +50,7 @@ function responseForStatic(request, path) {
     headers: {
       ...security,
       'content-type': type + '; charset=utf-8',
-      'cache-control': 'public, max-age=300',
+      'cache-control': 'no-cache',
     },
   });
 }
@@ -64,16 +64,24 @@ async function gameRequest(request, env, context) {
     const store = new SqlJsStore(SQL, await unpack(previous?.image));
     let server;
     try {
+      const backfillLegacy = !store.get(
+        "SELECT value FROM runtime_metadata WHERE key='legacy_awards_backfilled'"
+      );
       const app = createApp({
+        backfillLegacy,
         store,
         publicOrigin: new URL(request.url).origin,
         secureCookie: true,
         sweep: false,
       });
+      if (backfillLegacy)
+        store.run("INSERT INTO runtime_metadata VALUES('legacy_awards_backfilled','1')");
       server = app.server;
       const handler = httpServerHandler(server);
       const served = await handler.fetch(request.clone(), env, context);
       const body = [204, 205, 304].includes(served.status) ? null : await served.arrayBuffer();
+      if (previous && !store.hasChanges())
+        return new Response(body, { status: served.status, headers: served.headers });
       const image = await pack(store.export());
       if (image.byteLength >= 1_900_000)
         throw new Error('D1 snapshot is approaching its row-size limit');

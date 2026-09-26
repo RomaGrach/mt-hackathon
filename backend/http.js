@@ -6,6 +6,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { GameError } from './engine.js';
 import { Store } from './storage.js';
 import { Service } from './service.js';
+import { siteAdminAccess, adminUsers } from './admin.js';
 
 const PUBLIC = new Map([
   ['/', ['index.html', 'text/html']],
@@ -16,10 +17,12 @@ const PUBLIC = new Map([
   ['/src/ux.js', ['src/ux.js', 'text/javascript']],
   ['/src/recovery.js', ['src/recovery.js', 'text/javascript']],
   ['/src/shift-view.js', ['src/shift-view.js', 'text/javascript']],
+  ['/src/prototype-shift-view.js', ['src/prototype-shift-view.js', 'text/javascript']],
   ['/src/shift-client.js', ['src/shift-client.js', 'text/javascript']],
   ['/src/preview-state.js', ['src/preview-state.js', 'text/javascript']],
   ['/src/preview-app.js', ['src/preview-app.js', 'text/javascript']],
   ['/src/motivation-view.js', ['src/motivation-view.js', 'text/javascript']],
+  ['/src/admin-view.js', ['src/admin-view.js', 'text/javascript']],
   ['/src/app.js', ['src/app.js', 'text/javascript']],
   ['/src/api.js', ['src/api.js', 'text/javascript']],
   ['/src/views.js', ['src/views.js', 'text/javascript']],
@@ -100,6 +103,8 @@ export function createApp({
   rateLimit = 240,
   sessionLimit = 15,
   sweep = true,
+  clockMode = 'elapsed',
+  backfillLegacy = true,
 } = {}) {
   if (integrationKey && integrationKey.length < 32)
     throw new Error('HR_API_KEY должен содержать минимум 32 символа');
@@ -110,7 +115,7 @@ export function createApp({
     (!secureCookie || !publicOrigin.startsWith('https://'))
   )
     throw new Error('Production требует HTTPS PUBLIC_ORIGIN и COOKIE_SECURE=true');
-  const service = new Service(store, { clock });
+  const service = new Service(store, { clock, clockMode, backfillLegacy });
   const requests = new Limiter(rateLimit, 60000);
   const registrations = new Limiter(sessionLimit, 3600000);
   const send = (res, status, value) => {
@@ -160,6 +165,18 @@ export function createApp({
       if (pathname === '/api/health' && method === 'GET') {
         store.get('SELECT 1');
         send(res, 200, { status: 'ok', version: '2.1.0', storage: 'sqlite' });
+        return;
+      }
+      if (pathname.startsWith('/api/admin/')) {
+        if (method !== 'GET') error('METHOD_NOT_ALLOWED', 'Сводка доступна только для чтения', 405);
+        if (pathname === '/api/admin/access') send(res, 200, siteAdminAccess());
+        else if (pathname === '/api/admin/users')
+          send(
+            res,
+            200,
+            adminUsers(store, new URL(req.url, 'http://localhost').searchParams, clock())
+          );
+        else error('NOT_FOUND', 'Ресурс не найден', 404);
         return;
       }
       const client = req.socket.remoteAddress || 'unknown'; // Not persisted or logged.

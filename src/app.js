@@ -16,6 +16,7 @@ const model = {
   rankOffset: 0,
   auditMessage: null,
   scope: 'crew',
+  admin: null,
   error: null,
   busy: false,
   sessionKnown: false,
@@ -59,6 +60,7 @@ function paint(focus = false) {
           checked: el.checked,
         }))
       : [];
+  app.classList.toggle('game-active', model.view === 'run' && model.run?.schemaVersion === 2);
   app.innerHTML = render(model);
   for (const field of fields) {
     const el = document.getElementById(field.id);
@@ -93,7 +95,7 @@ function paint(focus = false) {
     (model.error ? app.querySelector('[data-action=refresh]') : app.querySelector('h1'))?.focus({
       preventScroll: true,
     });
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (model.view !== 'run') window.scrollTo({ top: 0, behavior: 'instant' });
   }
   if (model.view === 'run' && model.run?.phase === 'decision' && model.run.deadline !== null) {
     const tick = () => {
@@ -114,7 +116,7 @@ function paint(focus = false) {
             ? 'Осталось не более пяти секунд.'
             : '';
       if (announcement && announcement.textContent !== message) announcement.textContent = message;
-      if (ms === 0 && !model.busy && !model.error)
+      if (ms === 0 && !model.busy && !model.error && navigator.onLine)
         perform(async () => {
           acceptRun(await api('/runs/' + r.id));
         });
@@ -144,7 +146,7 @@ function paint(focus = false) {
             ? 'Осталось не более пяти секунд.'
             : '';
       if (message && message.textContent !== text) message.textContent = text;
-      if (ms === 0 && !model.busy && !model.error)
+      if (ms === 0 && !model.busy && !model.error && navigator.onLine)
         perform(async () => {
           acceptRun(await shiftClient.load(r.id));
         }, false);
@@ -176,7 +178,10 @@ async function perform(action, focus = true) {
   if (model.busy) return;
   model.busy = true;
   model.error = null;
-  paint();
+  app.setAttribute('aria-busy', 'true');
+  app.querySelectorAll('button,input,select').forEach((el) => {
+    el.disabled = true;
+  });
   try {
     await action();
   } catch (e) {
@@ -269,9 +274,14 @@ async function openRun(id) {
   model.view = 'run';
   if (model.run.phase === 'result') await reloadBoot();
 }
+async function loadAdmin(offset = 0) {
+  model.admin = await api('/admin/users?offset=' + offset);
+}
 async function navigate(view) {
+  document.querySelectorAll('dialog[open]').forEach((d) => d.close());
   model.view = view;
-  await reloadBoot();
+  if (view === 'admin') return loadAdmin();
+  if (!model.boot) await reloadBoot();
   if (view === 'leaderboard') await loadRankings();
 }
 async function loadRankings() {
@@ -297,8 +307,8 @@ async function startShift(options = {}) {
   );
   model.view = 'run';
   model.auditMessage = null;
-  await reloadBoot();
 }
+
 async function choose(id) {
   const r = model.run;
   if (!r || r.phase !== 'decision') return;
@@ -306,6 +316,17 @@ async function choose(id) {
 }
 
 app.addEventListener('click', (event) => {
+  const openSheet = event.target.closest('[data-open-sheet]');
+  if (openSheet) {
+    document.getElementById('sheet-' + openSheet.dataset.openSheet)?.showModal();
+    return;
+  }
+  const closeSheet = event.target.closest('[data-close-sheet]');
+  if (closeSheet) {
+    closeSheet.closest('dialog')?.close();
+    return;
+  }
+
   const element = event.target.closest('[data-action],[data-shift-action]');
   if (
     !element ||
@@ -359,7 +380,9 @@ app.addEventListener('click', (event) => {
   )
     return;
   perform(async () => {
-    if (action === 'refresh') return sync();
+    if (action === 'refresh')
+      return model.view === 'admin' ? loadAdmin(model.admin?.offset || 0) : sync();
+    if (action === 'admin-page') return loadAdmin(Number(element.dataset.offset));
     if (action === 'nav') return navigate(view);
     if (action === 'brief') {
       if (id?.startsWith('shift:')) return navigate('home');
@@ -505,30 +528,12 @@ app.addEventListener('submit', (event) => {
     }
   });
 });
-// Synchronise another tab's decisions and server time without stealing focus or repainting unchanged scenes.
-setInterval(async () => {
-  if (
-    model.busy ||
-    model.error ||
-    document.hidden ||
-    model.view !== 'run' ||
-    !model.run ||
-    model.run.phase === 'result'
-  )
-    return;
-  try {
-    const old = model.run;
-    const next = await api('/runs/' + old.id, { retry: false });
-    if (model.busy || model.run?.id !== old.id || model.run.revision !== old.revision) return;
-    acceptRun(next);
-    if (next.revision !== old.revision) paint(true);
-  } catch {
-    /* Explicit actions and Refresh show actionable errors; background polling stays quiet. */
-  }
-}, 4000);
-
 const initialHash = location.hash;
 await perform(async () => {
+  if (initialHash === '#admin') {
+    model.view = 'admin';
+    return loadAdmin();
+  }
   try {
     await reloadBoot();
   } catch (e) {
@@ -542,28 +547,30 @@ await perform(async () => {
   const id = initialHash.match(/^#run\/([a-f0-9-]{36})$/)?.[1];
   if (id) return openRun(id);
   const view = initialHash.slice(1);
-  if (['profile', 'leaderboard', 'notices'].includes(view)) return navigate(view);
+  if (['profile', 'leaderboard', 'notices', 'admin'].includes(view)) return navigate(view);
 });
 
-// The browser's network indicator is advisory; only the server owns game time.
-for (const event of ['offline', 'online'])
-  window.addEventListener(event, () => {
-    model.offline = !navigator.onLine;
-    paint(false);
-  });
-document.addEventListener('visibilitychange', () => {
-  if (
-    !document.hidden &&
-    !model.busy &&
-    !model.error &&
-    model.view === 'run' &&
-    model.run &&
-    model.run.phase !== 'result'
-  )
+// State refresh is event-driven; the local countdown never polls the API.
+let lastRefresh = 0;
+function refreshOnReturn() {
+  if (document.hidden || model.busy || !navigator.onLine || Date.now() - lastRefresh < 1000) return;
+  lastRefresh = Date.now();
+  if (model.run && model.view === 'run' && model.run.phase !== 'result')
     perform(async () => {
+      if (pending || readPending(globalThis.sessionStorage, SHIFT_PENDING_KEY)) return sync();
       acceptRun(await api('/runs/' + model.run.id));
     }, false);
+}
+window.addEventListener('offline', () => {
+  model.offline = true;
+  paint(false);
 });
+window.addEventListener('online', () => {
+  model.offline = false;
+  perform(() => (model.view === 'admin' ? loadAdmin(model.admin?.offset || 0) : sync()), false);
+});
+window.addEventListener('focus', refreshOnReturn);
+document.addEventListener('visibilitychange', refreshOnReturn);
 
 app.addEventListener('change', (event) => {
   if (event.target.id === 'shift-mode') {

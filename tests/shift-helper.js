@@ -5,11 +5,12 @@ import { commandFor } from '../src/shift-view.js';
 export function harness(
   database = ':memory:',
   at = Date.parse('2026-09-26T10:00:00Z'),
-  shared = null
+  shared = null,
+  clockMode = null
 ) {
   let now = at;
   const store = shared?.store || new Store(database),
-    service = shared?.service || new Service(store, { clock: () => now });
+    service = shared?.service || new Service(store, { clock: () => now, clockMode });
   const profile = service.createSession().profileId,
     v2 = service.shifts;
   const h = {
