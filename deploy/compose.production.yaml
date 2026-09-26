@@ -1,0 +1,38 @@
+services:
+  game:
+    build:
+      context: ..
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      DB_PATH: /app/data/reis400.sqlite
+      NODE_ENV: production
+      COOKIE_SECURE: 'true'
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?Set the published Sites origin}
+      PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:?Generate a random secret of at least 32 characters}
+      HR_API_KEY: ''
+    volumes:
+      - game-data:/app/data
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+  https:
+    image: caddy:2.10.2
+    environment:
+      API_HOSTNAME: ${API_HOSTNAME:?Set the API host pointing at this server}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - game
+    restart: unless-stopped
+volumes:
+  game-data:
+  caddy-data:
+  caddy-config:

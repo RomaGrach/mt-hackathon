@@ -1,12 +1,12 @@
 FROM node:24-bookworm-slim
 WORKDIR /app
 ENV HOST=0.0.0.0 PORT=3000 DB_PATH=/app/data/reis400.sqlite
-COPY --chown=node:node package.json server.mjs index.html preview.html styles.css ./
+COPY --chown=node:node package.json server.mjs index.html styles.css ./
 COPY --chown=node:node backend ./backend
 COPY --chown=node:node src ./src
 COPY --chown=node:node docs/openapi.json ./docs/openapi.json
 RUN mkdir -p /app/data && chown node:node /app/data
 USER node
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD node -e "fetch('http://127.0.0.1:3000/api/health',{headers:process.env.PROXY_SHARED_SECRET?{'X-Reis-Proxy-Secret':process.env.PROXY_SHARED_SECRET}:{}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "server.mjs"]

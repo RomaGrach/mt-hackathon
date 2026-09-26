@@ -96,6 +96,7 @@ export function createApp({
   store = new Store(database),
   clock = Date.now,
   integrationKey = process.env.HR_API_KEY || '',
+  proxySecret = process.env.PROXY_SHARED_SECRET || '',
   publicOrigin = process.env.PUBLIC_ORIGIN || '',
   secureCookie = process.env.COOKIE_SECURE === 'true',
   rateLimit = 240,
@@ -104,6 +105,8 @@ export function createApp({
 } = {}) {
   if (integrationKey && integrationKey.length < 32)
     throw new Error('HR_API_KEY должен содержать минимум 32 символа');
+  if (proxySecret && proxySecret.length < 32)
+    throw new Error('PROXY_SHARED_SECRET должен содержать минимум 32 символа');
   if (publicOrigin && !/^https?:\/\/[^/]+$/.test(publicOrigin))
     throw new Error('PUBLIC_ORIGIN — origin без пути и завершающего /');
   if (
@@ -158,12 +161,19 @@ export function createApp({
         return;
       }
       if (!pathname.startsWith('/api/')) error('NOT_FOUND', 'Ресурс не найден', 404);
+      if (
+        proxySecret &&
+        !timingSafeEqual(digest(req.headers['x-reis-proxy-secret'] || ''), digest(proxySecret))
+      )
+        error('UNAUTHORIZED', 'Запрос к API не авторизован', 401);
       if (pathname === '/api/health' && method === 'GET') {
         store.get('SELECT 1');
         send(res, 200, { status: 'ok', version: '2.1.0', storage: 'sqlite' });
         return;
       }
-      const client = req.socket.remoteAddress || 'unknown'; // Not persisted or logged.
+      // The visitor header is trusted only when the shared proxy secret is enforced above.
+      const client =
+        (proxySecret && req.headers['x-reis-visitor']) || req.socket.remoteAddress || 'unknown';
       requests.check(client, clock());
       if (pathname.startsWith('/api/integrations/')) {
         if (!integrationKey)
