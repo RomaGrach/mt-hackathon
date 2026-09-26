@@ -1,0 +1,51 @@
+import { esc, button, heading, scales, note, prototypeLink } from './ui.js';
+
+export function welcome() {
+  return `<main id="main" class="welcome"><a class="wordmark" href="/" aria-label="Рейс 400, главная">РЕЙС <b>400</b><span>ТРЕНАЖЁР ПРОВОДНИКА</span></a><div class="welcome-grid"><section>${heading('ПРАКТИКА РЕШЕНИЙ НА БОРТУ', 'Спокойствие приходит с практикой.', 'Наблюдайте за ситуацией, выбирайте действия и разбирайте последствия. Здесь можно ошибиться — и попробовать другой подход.')}<div class="route-strip" aria-label="Этапы тренировки"><span>Наблюдение</span><span>Решение</span><span>Разбор</span></div></section><section class="panel onboarding"><p class="eyebrow">БЕЗ РЕГИСТРАЦИИ И ЛИЧНЫХ ДАННЫХ</p><h2>Ваша первая тренировка</h2><p>Учебное имя появится автоматически.</p><form id="join-form"><label for="crew">Учебная бригада</label><select id="crew" name="crew"><option value="msk-1">М-01 · Москва</option><option value="msk-2">М-02 · Москва</option><option value="spb-1">П-01 · Петербург</option><option value="spb-2">П-02 · Петербург</option></select><button class="primary-button" type="submit">Начать тренировку <span aria-hidden="true">→</span></button></form><p class="help">Профиль хранится на сервере. Сессия — 7 дней. В демо нет восстановления входа после выхода.</p></section></div><section class="prototype-callout"><div><p class="eyebrow">НОВАЯ МОДЕЛЬ · ПРОТОТИП ИНТЕРФЕЙСА</p><h2>Одна смена. Несколько дел.</h2><p>Приёмка, осмотр вагона, параллельные обращения и задачи из обещаний. Пока без серверного зачёта.</p></div>${prototypeLink}</section>${note}</main>`;
+}
+
+export function shell(content, model) {
+  const b = model.boot;
+  const unread = b.notices.filter((n) => !n.readAt).length;
+  const items = [
+    ['home', 'Моя смена', '01'],
+    ['profile', 'Навыки и профиль', '02'],
+    ['leaderboard', 'Рейтинг', '03'],
+    ['notices', 'Уведомления', '04'],
+  ];
+  return `<div class="app-shell"><aside class="sidebar"><a class="wordmark" href="/">РЕЙС <b>400</b><span>ПРАКТИКА НА БОРТУ</span></a><nav aria-label="Главное меню">${items.map(([id, label, n]) => `<button class="nav-item ${model.view === id ? 'active' : ''}" data-action="nav" data-view="${id}" aria-label="${label}" ${model.view === id ? 'aria-current="page"' : ''}><span class="nav-icon" aria-hidden="true">${n}</span><span>${label}</span>${id === 'notices' && unread ? `<span class="notice-count" aria-label="${unread} непрочитанных">${unread}</span>` : ''}</button>`).join('')}</nav><p class="sidebar-note">Сначала безопасность.<br>Затем — уверенное решение.</p></aside><div class="workspace"><header class="topbar"><span>${esc(b.crews.find((c) => c.id === b.profile.crew)?.name || 'Учебная бригада')}</span><span class="tag">Учебный профиль</span></header><main id="main">${content}</main><footer class="app-footer">РЕЙС 400 · Синтетическая учебная среда</footer></div></div>`;
+}
+
+export function home(model) {
+  const { boot: b, run } = model;
+  const p = b.profile;
+  const active = run && run.phase !== 'result' ? run : b.activeRun;
+  const next = b.catalog.find((s) => !p.completed.includes(s.id)) || b.catalog[0];
+  return `${heading('МОЯ СМЕНА', active ? 'Продолжим с того же места.' : 'Одна ситуация. Новый опыт.', 'Короткая тренировка, после которой понятно, что получилось и над чем поработать.')}<section class="next-session"><div><p class="eyebrow">${active ? 'НЕЗАВЕРШЁННАЯ ПОПЫТКА' : 'СЛЕДУЮЩАЯ ТРЕНИРОВКА'}</p><h2>${esc(active ? 'Вернитесь к своему решению' : next.title)}</h2><p>${esc(active ? 'Ваши действия сохранены. Выход из сцены не останавливает критический таймер.' : next.summary)}</p>${active ? button('Продолжить попытку', 'resume', `data-id="${esc(active.id)}"`) : button('Начать тренировку', 'brief', `data-id="${esc(next.id)}"`)}</div><div class="session-ticket"><span>УЧЕБНЫЙ РЕЙС</span><strong>400</strong><span>${p.completed.length} из ${b.catalog.length} ситуаций освоено</span></div></section><section class="progress-line" aria-label="Ваш прогресс"><span><strong>${p.completed.length} / ${b.catalog.length}</strong> освоено</span><span><strong>${p.totalPoints}</strong> очков v1</span><span><strong>${p.achievements.length}</strong> достижений</span>${button('Посмотреть навыки', 'nav', 'data-view="profile"', 'text-back')}</section><section class="prototype-callout"><div><p class="eyebrow">ДВУХУРОВНЕВАЯ СМЕНА · UX-ПРОТОТИП</p><h2>Замечать. Расставлять приоритеты. Возвращаться.</h2><p>Попробуйте новый игровой путь до подключения движка v2. Результат прототипа не попадает в профиль и рейтинг.</p></div>${prototypeLink}</section><section aria-labelledby="catalog-title"><div class="section-title-row"><h2 id="catalog-title">Другие ситуации</h2><span>Рабочие модули v1</span></div><div class="scenario-grid">${b.catalog.map((s) => `<article class="scenario-card"><div class="scenario-card-top"><span class="eyebrow">${esc(s.category)}</span><span class="tag">${p.completed.includes(s.id) ? 'Освоено ✓' : 'Можно начать'}</span></div><h3>${esc(s.title)}</h3><p>${esc(s.summary)}</p><p class="help">${esc(s.duration)} · ${s.endings} исхода${p.best[s.id] ? ` · лучший зачёт: ${p.best[s.id]}` : ''}</p>${button('Открыть ситуацию', 'brief', `data-id="${esc(s.id)}"`, 'outline-button')}</article>`).join('')}</div></section><details class="panel challenge-details"><summary>Цель недели</summary><h3>${esc(b.challenge.title)}</h3><p>${b.challenge.progress} / ${b.challenge.target} · ${b.challenge.completed ? 'Выполнено' : 'В процессе'}</p><p>Награда: ${b.challenge.reward} сезонных бонусов. До ${new Date(b.challenge.endsAt).toLocaleDateString('ru-RU')}. Это действующая механика v1, не новая система лиг.</p></details>${note}`;
+}
+
+export function briefing(model) {
+  const s = model.boot.catalog.find((x) => x.id === model.brief);
+  if (!s)
+    return `${heading('СИТУАЦИЯ НЕДОСТУПНА', 'Каталог изменился.')}${button('Вернуться к смене', 'nav', 'data-view="home"')}`;
+  return `${button('← К смене', 'nav', 'data-view="home"', 'text-back')}<div class="reading-column">${heading('ПЕРЕД НАЧАЛОМ · МОДУЛЬ V1', s.title, s.summary)}<section class="panel"><h2>Как проходит тренировка</h2><p>Прочитайте ситуацию и выберите действие. После каждого выбора вы увидите, что изменилось. Правильность решения интерфейс заранее не подсказывает.</p><p>${esc(s.duration)} · ${s.endings} исхода · версия ${esc(s.version)}</p><p><strong>В критических сценах есть таймер.</strong> Он не останавливается после закрытия страницы. Пока вы читаете последствия, следующий таймер не идёт.</p><div class="stack">${button('Начать зачётную попытку', 'start', `data-id="${esc(s.id)}"`)}${button('Изучить в практике', 'start', `data-id="${esc(s.id)}" data-practice="true"`, 'outline-button')}</div><p class="help">Практика v1 тоже использует таймер, но не увеличивает рейтинг. Учебная пауза и выбор времени предусмотрены в новой модели v2.</p></section><details class="panel"><summary>Как устроен учебный зачёт</summary><p>Безопасность не ниже 65, лояльность не ниже 55. Критическая ошибка исключает зачёт независимо от очков.</p><p>Рейтинг v1 учитывает лучший зачёт каждого модуля; повторные результаты не суммируются. Это авторские учебные правила, не допуск к работе.</p></details>${note}</div>`;
+}
+
+export function decision(model) {
+  const r = model.run;
+  return `<div class="game-topline">${button('← К смене', 'nav', 'data-view="home"', 'text-back')}<span class="tag">${r.practice ? 'Практика' : 'Учебный зачёт'} · решение ${r.history.length + 1}</span></div><div class="reading-column">${scales(r.loyalty, r.safety)}${heading('ВАГОН ' + r.scenario.carriage, r.scenario.title)}<section class="scene-card"><p class="eyebrow">${esc(r.node.speaker)}</p><p class="scene-context">${esc(r.node.label)}</p><blockquote>${esc(r.node.text)}</blockquote></section><h2 id="decision-prompt">${esc(r.node.prompt)}</h2>${r.deadline !== null ? `<section class="timer-block" aria-label="Критическое окно"><div class="timer-label"><strong>Ограниченное время</strong><span role="timer" aria-live="off"><strong id="timer-number">${r.node.timer}</strong> с</span></div><div class="timer-meter" aria-hidden="true"><span id="timer-meter"></span></div><p class="help">Срок идёт на сервере, даже при потере связи.</p><span id="timer-announcement" class="sr-only" aria-live="polite"></span></section>` : '<p class="pace-label">Без таймера. Можно спокойно прочитать ситуацию.</p>'}<div class="options" role="group" aria-labelledby="decision-prompt">${r.node.options.map((o, i) => `<button class="option" data-action="choose" data-id="${esc(o.id)}" ${o.available ? '' : 'aria-disabled="true"'}><span class="option-index" aria-hidden="true">${i + 1}</span><span class="option-copy"><strong>${esc(o.title)}</strong><small>${esc(o.available ? o.description : 'Недоступно: ' + o.requirement)}</small></span></button>`).join('')}</div>${r.criticalError ? '<p class="critical-notice">Критическая ошибка уже записана. Продолжите для разбора; зачёт за эту попытку невозможен.</p>' : ''}<details class="panel"><summary>Ресурсы и состояние</summary><p>Коллега: ${r.resources.colleague ? 'свободен' : 'задействован'}. Экстренная связь не ограничена.</p><p>Очки попытки: ${r.points}. Очки не заменяют безопасность.</p>${button('Прервать попытку', 'abort', '', 'text-back danger-text')}</details></div>`;
+}
+
+export function feedback(r) {
+  const h = r.history.at(-1);
+  const diff = (n) => (n > 0 ? '+' : '') + n;
+  return `<div class="reading-column">${heading(h.timedOut ? 'СРОК ИСТЁК НА СЕРВЕРЕ' : 'ПОСЛЕДСТВИЕ', h.timedOut ? 'Время на действие вышло.' : 'Что изменилось после решения.')}<section class="panel feedback-card"><p class="eyebrow">ВАШЕ ДЕЙСТВИЕ</p><h2>${esc(h.title)}</h2><p class="lead">${esc(h.feedback)}</p>${h.critical ? '<p class="critical-notice">Критическая ошибка. Учебный зачёт за эту попытку невозможен.</p>' : ''}<div class="impact-grid">${[
+    ['loyalty', 'Лояльность'],
+    ['safety', 'Безопасность'],
+    ['points', 'Очки'],
+  ]
+    .map(([k, t]) => `<div><span>${t}</span><strong>${diff(h.impact[k])}</strong></div>`)
+    .join(
+      ''
+    )}</div>${scales(r.loyalty, r.safety)}</section>${button(r.finished ? 'Открыть полный разбор' : 'Продолжить', 'continue')}<p class="help">Сейчас можно читать без спешки. Следующий критический срок начнётся только после продолжения.</p></div>`;
+}

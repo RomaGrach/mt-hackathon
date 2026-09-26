@@ -1,7 +1,7 @@
 FROM node:24-bookworm-slim
 WORKDIR /app
 ENV HOST=0.0.0.0 PORT=3000 DB_PATH=/app/data/reis400.sqlite
-COPY --chown=node:node package.json server.mjs index.html styles.css ./
+COPY --chown=node:node package.json server.mjs index.html preview.html styles.css ./
 COPY --chown=node:node backend ./backend
 COPY --chown=node:node src ./src
 COPY --chown=node:node docs/openapi.json ./docs/openapi.json
