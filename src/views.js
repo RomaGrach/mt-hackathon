@@ -138,7 +138,7 @@ function notices(model) {
 
 export function render(model) {
   const content =
-    model.view === 'admin' && !model.boot
+    model.view === 'admin'
       ? '<main id="main" class="standalone-admin">' + adminView(model.admin) + '</main>'
       : !model.boot && !model.sessionKnown
         ? '<main id="main" class="loading-page"><h1 tabindex="-1">Открываем учебный рейс…</h1><p>Проверяем сессию и сохранённый прогресс. При ошибке используйте обновление состояния.</p></main>'
