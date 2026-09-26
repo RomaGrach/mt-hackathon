@@ -49,7 +49,8 @@ async function action(page, type, id) {
   expect(index, 'offered action ' + type + ' ' + id).toBeGreaterThanOrEqual(0);
   const b = page.locator('[data-shift-action="' + index + '"]');
   if (!(await b.isVisible()))
-    await page.locator('[data-open-sheet=' + (type === 'focus' ? 'map' : 'tools') + ']').click();
+    await page.locator('[data-game-tab=' + (type === 'focus' ? 'map' : 'tools') + ']').click();
+  if (type === 'abort') await page.locator('.inline-confirm > summary').click();
   await b.click();
   await idle(page);
   return state(page);
@@ -107,6 +108,12 @@ async function late(page) {
   return action(page, 'continue');
 }
 async function nav(page, view) {
+  if (await page.locator('[data-game-tab=tools]').count()) {
+    await page.locator('[data-game-tab=tools]').click();
+    await page.locator('[data-action=nav][data-view=home]').click();
+    await idle(page);
+    if (view === 'home') return;
+  }
   const b = page.locator('.nav-item[data-view="' + view + '"]');
   if (!(await b.isVisible())) await page.locator('.site-menu > summary').click();
   await b.click();
@@ -270,7 +277,6 @@ test('v2 другой класс/вариант, untimed, цель и практ
   const branch = await state(page);
   expect(branch.mode).toBe('training');
   expect(branch.id).not.toBe(r.id);
-  page.once('dialog', (d) => d.accept());
   await action(page, 'abort');
   await nav(page, 'profile');
   await page.locator('[data-open-sheet=goal]').click();

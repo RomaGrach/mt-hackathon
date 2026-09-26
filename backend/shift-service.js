@@ -62,11 +62,11 @@ export function publishShiftContent(store, c, now) {
   });
 }
 export class ShiftService {
-  constructor(store, { clock = Date.now, clockMode = 'elapsed' } = {}) {
+  constructor(store, { clock = Date.now, clockMode = 'elapsed', publishContent = true } = {}) {
     this.store = store;
     this.clock = clock;
     this.clockMode = clockMode;
-    publishShiftContent(store, SHIFT_CONTENT, clock());
+    if (publishContent) publishShiftContent(store, SHIFT_CONTENT, clock());
     this.motivation = new Motivation(store, () => this.currentContent(false));
   }
   currentContent(enabled = true, scenarioId = SHIFT_CONTENT.id) {

@@ -171,8 +171,8 @@ test('уведомления, смена бригады, экспорт и уд�
   await page.locator('[data-action="export"]').click();
   expect((await download).suggestedFilename()).toBe('reis400-profile.json');
   await idle(page);
-  page.once('dialog', (dialog) => dialog.accept());
   await page.locator('[data-action="delete"]').click();
+  await page.locator('[data-action="delete"][data-confirmed]').click();
   await idle(page);
   await expect(page.locator('#join-form')).toBeVisible();
   expect((await page.request.get(origin + '/api/bootstrap')).status()).toBe(401);

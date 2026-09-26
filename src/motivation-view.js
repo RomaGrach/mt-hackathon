@@ -1,4 +1,4 @@
-import { sheet, tutorialContent } from './shift-view.js';
+import { sheet } from './shift-view.js';
 import { esc, button, heading } from './ui.js';
 const when = (value) =>
   new Date(value).toLocaleDateString('ru-RU', {
@@ -145,8 +145,9 @@ export function shiftHome(model) {
     '<div class="reading-column">' +
     `<section class="player-card"><div class="player-avatar">Р</div><div><p class="eyebrow">Личный кабинет</p><h1 tabindex="-1">${esc(b.profile.name || 'Проводник')}</h1><p>Уровень ${m.practiceLevel} · ${m.lifetimePracticeXP} XP · ${esc(b.crews?.find((c) => c.id === b.profile.crew)?.name || b.profile.crew)}</p></div><button data-action="nav" data-view="profile" aria-label="Открыть профиль">→</button></section><div class="home-route"><span>МОСКВА</span><span class="route-train">▰▰▰</span><span>ПЕТЕРБУРГ</span></div>` +
     main +
-    '<button class="learn-entry" data-open-sheet="help">? Как играть · короткое обучение →</button>' +
-    sheet('help', 'Как играть', tutorialContent) +
+    (model.tutorialSeen
+      ? ''
+      : '<section class="first-lesson"><h2>Первый раз в игре?</h2><p>Покажем кнопки и показатели прямо на игровом экране.</p><button class="outline-button" data-action="tutorial-start">Пройти обучение</button><button class="text-back" data-tutorial-skip>Пропустить</button></section>') +
     '<section class="panel"><h2>Ваш ритм</h2><p>' +
     goal +
     ' за неделю · ' +

@@ -2082,3 +2082,51 @@ button:disabled { opacity: .78; cursor: wait; }
  .admin-user > summary { gap: 8px; }
  .admin-state { max-width: 82px; text-align: right; }
 }
+
+/* Gameplay uses the screen itself, with local tabs instead of modal sheets. */
+.playing-shell { background: #f4f7fb; }
+.playing-shell .game-header { max-width: none; width: 100%; height: 62px; min-height: 62px; flex-wrap: nowrap; justify-content: flex-start; padding: 8px 16px; gap: 20px; }
+.game-header .compact-meters { flex: 1; max-width: 280px; width: auto; }
+.game-header .compact-meter span { font-size: 12px; }
+.game-header .game-clock { flex: 0 0 auto; }
+.playing-shell .workspace { padding: 0 0 calc(68px + env(safe-area-inset-bottom)); }
+.playing-shell .shift-stage, .playing-shell .game-pane { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 16px; }
+.playing-shell .shift-console:not([data-phase=result]) .shift-stage { height: calc(100dvh - 130px - env(safe-area-inset-bottom)); min-height: 0; }
+.playing-shell .shift-stage .scene-card { border: 0; border-radius: 0; padding: 0; margin: 16px 0; background: transparent; box-shadow: none; }
+.playing-shell .shift-stage .scene-card p { font-size: 17px; }
+.playing-shell .shift-stage .page-heading h1 { font-size: 24px; }
+.playing-shell .shift-stage .page-heading { margin-bottom: 12px; }
+.playing-shell .location-tag { margin-bottom: 10px; font-size: 14px; }
+.playing-shell .shift-stage .panel { background: transparent; border: 0; padding: 0; border-top: 1px solid #d6e1ed; border-radius: 0; }
+.playing-shell [data-game-pane][hidden] { display: none; }
+.game-pane { min-height: calc(100dvh - 130px); }
+.game-pane h1 { font-size: 26px; margin: 0 0 12px; }
+.game-pane h2 { font-size: 18px; margin: 24px 0 10px; }
+.game-pane .case-tab { border: 0; border-bottom: 1px solid #d6e1ed; border-radius: 0; background: transparent; padding: 16px 0; margin: 0; box-shadow: none; }
+.game-pane .case-tab.selected { background: #e9f1fd; padding-left: 10px; }
+.game-pane .case-tab small { font-size: 14px; }
+.game-pane .shift-actions { margin-top: 16px; }
+.wagon-route { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 12px 0; border-block: 1px solid #d6e1ed; font-size: 14px; color: #536b89; }
+.game-dock button[aria-current] { color: #20568e; background: #e7effa; }
+.game-dock button { font-size: 13px; }
+.inline-confirm { border-top: 1px solid #d6e1ed; padding-top: 8px; }
+.inline-confirm summary { color: #994334; }
+.inline-confirm .text-back { margin-top: 8px; }
+.tour-guide, .tour-offer { margin: 0; padding: 14px 16px; background: #e2eefc; border-bottom: 1px solid #a4bedc; }
+.tour-guide h2 { font-size: 18px; margin: 5px 0; }
+.tour-guide p { font-size: 15px; line-height: 1.45; margin: 6px 0; }
+.tour-guide small { font-size: 13px; color: #496988; }
+.tour-controls, .tour-offer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tour-controls { justify-content: space-between; }
+.tour-controls button, .tour-offer button { border: 0; background: transparent; color: #20568e; padding: 8px 10px; }
+.tour-controls [data-tutorial-next] { background: #255c94; color: white; }
+.tour-highlight { outline: 2px solid #2470b8; outline-offset: -2px; }
+.shift-console:has(.tour-guide) .shift-stage { height: auto !important; min-height: 300px !important; }
+.shift-console:has(.tour-guide) .scene-content { overflow: visible; }
+.shift-console:has(.tour-offer) .shift-stage { height: auto !important; min-height: 350px !important; }
+.first-lesson { margin: 20px 0; padding: 16px 0; border-block: 1px solid #ccd9e7; }
+.first-lesson h2 { font-size: 20px; }
+.action-pending { background: #e4eefb !important; border-color: #6c97c5 !important; }
+@media(max-height:560px) { .playing-shell .shift-console:not([data-phase=result]) .shift-stage { height: auto; min-height: calc(100dvh - 130px); } }
+.game-pane .case-tab strong { font-size: 16px; line-height: 1.4; }
+.game-pane > .muted { font-size: 15px; line-height: 1.5; }

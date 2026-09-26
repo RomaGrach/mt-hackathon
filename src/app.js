@@ -5,7 +5,15 @@ import { ShiftClient, SHIFT_PENDING_KEY } from './shift-client.js';
 const shiftClient = new ShiftClient();
 
 const app = document.querySelector('#app');
+const TUTORIAL_KEY = 'reis400.interface-tour.v1';
+let tutorialSeen = false;
+try {
+  tutorialSeen = localStorage.getItem(TUTORIAL_KEY) === 'done';
+} catch {}
+let tutorialStep = null;
+let gameTab = 'scene';
 const model = {
+  tutorialSeen,
   boot: null,
   run: null,
   view: 'home',
@@ -29,6 +37,7 @@ let sampledServer = Date.now();
 let pending = readPending();
 
 function acceptRun(run) {
+  if (model.run?.id !== run.id || model.run?.revision !== run.revision) gameTab = 'scene';
   model.run = run;
   shiftClient.run = run?.schemaVersion === 2 ? run : null;
   sampledAt = performance.now();
@@ -77,6 +86,10 @@ function paint(focus = false) {
     if (el) el.open = open;
   }
   paintedKey = key;
+  if (model.view === 'run' && model.run?.schemaVersion === 2) {
+    showGameTab(gameTab);
+    showTutorial();
+  }
   if (!focus && focusedId) {
     const restored = document.getElementById(focusedId);
     if (restored && focusedValue !== undefined) restored.value = focusedValue;
@@ -88,9 +101,13 @@ function paint(focus = false) {
   });
   app.setAttribute('aria-busy', String(model.busy));
   if (model.busy)
-    app.querySelectorAll('button,input,select').forEach((el) => {
-      el.disabled = true;
-    });
+    app
+      .querySelectorAll(
+        'button:not([data-game-tab]):not([data-tutorial-next]):not([data-tutorial-skip]),input,select'
+      )
+      .forEach((el) => {
+        el.disabled = true;
+      });
   if (focus) {
     (model.error ? app.querySelector('[data-action=refresh]') : app.querySelector('h1'))?.focus({
       preventScroll: true,
@@ -179,9 +196,13 @@ async function perform(action, focus = true) {
   model.busy = true;
   model.error = null;
   app.setAttribute('aria-busy', 'true');
-  app.querySelectorAll('button,input,select').forEach((el) => {
-    el.disabled = true;
-  });
+  app
+    .querySelectorAll(
+      'button:not([data-game-tab]):not([data-tutorial-next]):not([data-tutorial-skip]),input,select'
+    )
+    .forEach((el) => {
+      el.disabled = true;
+    });
   try {
     await action();
   } catch (e) {
@@ -315,7 +336,126 @@ async function choose(id) {
   acceptRun(await mutate('/runs/' + r.id + '/decision', { revision: r.revision, optionId: id }));
 }
 
+function showGameTab(id) {
+  gameTab = id;
+  app.querySelectorAll('[data-game-pane]').forEach((el) => {
+    el.hidden = el.dataset.gamePane !== id;
+  });
+  app.querySelectorAll('[data-game-tab]').forEach((el) => {
+    if (el.dataset.gameTab === id) el.setAttribute('aria-current', 'page');
+    else el.removeAttribute('aria-current');
+  });
+}
+const tourSteps = [
+  [
+    'scene',
+    '.game-clock',
+    'Время смены',
+    'На часах — игровое время. Рабочее действие расходует столько времени, сколько указано на его кнопке.',
+  ],
+  [
+    'scene',
+    '.compact-meters',
+    'Показатели',
+    'Зелёная полоса — лояльность, синяя — безопасность. Ваши решения изменяют их.',
+  ],
+  [
+    'scene',
+    '.scene-content',
+    'Ситуация',
+    'Здесь указаны место и происходящее. Длинный текст можно прокрутить отдельно от кнопок.',
+  ],
+  [
+    'scene',
+    '.shift-stage > .shift-actions',
+    'Действия',
+    'Каждая кнопка — отдельное решение. Во время срочной ситуации появится таймер реального времени.',
+  ],
+  [
+    'map',
+    '[data-game-tab="map"]',
+    'Вагон',
+    'Эта кнопка открывает известные ситуации. Выберите обращение, чтобы заняться им. Осмотр салона открывает новые обстоятельства.',
+  ],
+  [
+    'tasks',
+    '[data-game-tab="tasks"]',
+    'Задачи',
+    'Здесь видны все задачи, их сроки и результат. Переходы между вкладками не тратят игровое время.',
+  ],
+  [
+    'tools',
+    '[data-game-tab="tools"]',
+    'Управление',
+    'Здесь находятся подсказка, учебная пауза, выход на главную и прерывание смены. Срочный таймер работает, пока вы не включили паузу.',
+  ],
+];
+function finishTutorial() {
+  tutorialStep = null;
+  model.tutorialSeen = true;
+  try {
+    localStorage.setItem(TUTORIAL_KEY, 'done');
+  } catch {}
+  app.querySelector('.tour-guide')?.remove();
+  app.querySelector('.tour-offer')?.remove();
+  app.querySelectorAll('.tour-highlight').forEach((el) => el.classList.remove('tour-highlight'));
+  showGameTab('scene');
+}
+function showTutorial() {
+  app.querySelector('.tour-guide')?.remove();
+  app.querySelectorAll('.tour-highlight').forEach((el) => el.classList.remove('tour-highlight'));
+  const console = app.querySelector('.shift-console');
+  if (!console) return;
+  if (tutorialStep === null) {
+    if (!model.tutorialSeen && model.run.phase === 'briefing') {
+      const offer = document.createElement('div');
+      offer.className = 'tour-offer';
+      offer.innerHTML =
+        '<span>Первый раз? Покажем управление.</span><button data-tutorial-start>Обучение</button><button data-tutorial-skip>Пропустить</button>';
+      console.prepend(offer);
+    }
+    return;
+  }
+  const [pane, selector, title, text] = tourSteps[tutorialStep];
+  showGameTab(pane);
+  app.querySelector(selector)?.classList.add('tour-highlight');
+  const guide = document.createElement('section');
+  guide.className = 'tour-guide';
+  guide.setAttribute('aria-label', 'Обучение');
+  guide.innerHTML = `<div><small>Обучение · ${tutorialStep + 1} / ${tourSteps.length}</small><h2>${title}</h2><p>${text}</p></div><div class="tour-controls"><button data-tutorial-skip>Пропустить</button><button data-tutorial-next>${tutorialStep === tourSteps.length - 1 ? 'Начать играть' : 'Далее →'}</button></div>`;
+  console.prepend(guide);
+}
+
 app.addEventListener('click', (event) => {
+  if (event.target.closest('[data-dismiss-confirm]')) {
+    event.target.closest('.inline-confirmation')?.remove();
+    return;
+  }
+  const tab = event.target.closest('[data-game-tab]');
+  if (tab) {
+    showGameTab(tab.dataset.gameTab);
+    return;
+  }
+  if (event.target.closest('[data-tutorial-start]')) {
+    tutorialStep = 0;
+    app.querySelector('.tour-offer')?.remove();
+    showTutorial();
+    return;
+  }
+  if (event.target.closest('[data-tutorial-skip]')) {
+    finishTutorial();
+    if (model.view !== 'run') paint();
+    return;
+  }
+  if (event.target.closest('[data-tutorial-next]')) {
+    if (++tutorialStep >= tourSteps.length) finishTutorial();
+    else showTutorial();
+    return;
+  }
+  if (event.target.closest('[data-cancel-confirm]')) {
+    event.target.closest('details').open = false;
+    return;
+  }
   const openSheet = event.target.closest('[data-open-sheet]');
   if (openSheet) {
     document.getElementById('sheet-' + openSheet.dataset.openSheet)?.showModal();
@@ -338,16 +478,13 @@ app.addEventListener('click', (event) => {
   if (element.dataset.shiftAction !== undefined) {
     const action = model.run?.actions[Number(element.dataset.shiftAction)];
     if (!action) return;
-    if (
-      action.command === 'abort' &&
-      !confirm('Прервать смену? Учебная история сохранится без зачёта.')
-    )
-      return;
     if (pending || readPending(globalThis.sessionStorage, SHIFT_PENDING_KEY)) {
       model.error = 'Сначала восстановите предыдущий запрос.';
       paint(true);
       return;
     }
+    element.classList.add('action-pending');
+    element.setAttribute('aria-busy', 'true');
     perform(async () => {
       acceptRun(await shiftClient.send(action));
       if (model.run.phase === 'result') await reloadBoot();
@@ -365,21 +502,37 @@ app.addEventListener('click', (event) => {
     paint();
     return;
   }
-  if (
-    ['delete', 'logout'].includes(action) &&
-    !confirm(
+  if (['delete', 'logout', 'abort'].includes(action) && !element.dataset.confirmed) {
+    if (element.nextElementSibling?.classList.contains('inline-confirmation')) return;
+    const box = document.createElement('div');
+    box.className = 'inline-confirmation';
+    const message = document.createElement('p');
+    message.textContent =
       action === 'delete'
-        ? 'Удалить этот учебный профиль, все попытки и достижения с сервера? Это необратимо.'
-        : 'Выйти? В демо нет восстановления входа. Для следующего входа будет создан новый профиль.'
-    )
-  )
+        ? 'Удалить профиль и все его результаты? Это необратимо.'
+        : action === 'logout'
+          ? 'Выйти из профиля? В тестовой версии восстановить вход нельзя.'
+          : 'Прервать попытку? Она сохранится без зачёта.';
+    const yes = element.cloneNode(true);
+    yes.dataset.confirmed = 'true';
+    yes.textContent = 'Подтвердить';
+    const no = document.createElement('button');
+    no.className = 'text-back';
+    no.textContent = 'Отмена';
+    no.dataset.dismissConfirm = '';
+    box.append(message, yes, no);
+    element.after(box);
     return;
-  if (
-    action === 'abort' &&
-    !confirm('Прервать попытку? Она сохранится как незачёт, без рейтинговых очков.')
-  )
-    return;
+  }
   perform(async () => {
+    if (action === 'tutorial-start') {
+      const active = model.run?.phase !== 'result' ? model.run : null;
+      const id = active?.id || model.boot.activeRun?.id;
+      if (id) await openRun(id);
+      else await startShift();
+      if (model.run.schemaVersion === 2) tutorialStep = 0;
+      return;
+    }
     if (action === 'refresh')
       return model.view === 'admin' ? loadAdmin(model.admin?.offset || 0) : sync();
     if (action === 'admin-page') return loadAdmin(Number(element.dataset.offset));
