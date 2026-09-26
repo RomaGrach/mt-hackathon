@@ -8,6 +8,7 @@ for (const file of [
   'preview.html',
   'styles.css',
   'src/app.js',
+  'src/admin-view.js',
   'src/api.js',
   'src/views.js',
   'src/ui.js',

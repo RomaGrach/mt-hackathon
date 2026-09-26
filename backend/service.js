@@ -18,12 +18,12 @@ const assert = (condition, code, message, status = 400) => {
 };
 
 export class Service {
-  constructor(store, { clock = Date.now, catalog = defaultCatalog } = {}) {
+  constructor(store, { clock = Date.now, catalog = defaultCatalog, clockMode = 'elapsed' } = {}) {
     this.store = store;
     this.clock = clock;
     this.catalog = catalog;
     store.publish(catalog, clock());
-    this.shifts = new ShiftService(store, { clock });
+    this.shifts = new ShiftService(store, { clock, clockMode });
     store.transaction(() => {
       for (const row of store.all('SELECT id FROM profiles'))
         for (const id of profileView(store, row.id, catalog, clock()).achievements)

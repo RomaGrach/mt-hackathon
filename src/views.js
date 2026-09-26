@@ -1,3 +1,4 @@
+import { adminView } from './admin-view.js';
 import * as ux from './ux.js';
 import { renderShift } from './shift-view.js';
 import { motivationProfile, motivationLeaders, shiftResultControls } from './motivation-view.js';
@@ -136,24 +137,28 @@ function notices(model) {
 
 export function render(model) {
   const content =
-    !model.boot && !model.sessionKnown
-      ? '<main id="main" class="loading-page"><h1 tabindex="-1">Открываем учебный рейс…</h1><p>Проверяем сессию и сохранённый прогресс. При ошибке используйте обновление состояния.</p></main>'
-      : !model.boot
-        ? welcome()
-        : shell(
-            model.view === 'brief'
-              ? briefing(model)
-              : model.view === 'run'
-                ? runView(model)
-                : model.view === 'profile'
-                  ? profile(model)
-                  : model.view === 'leaderboard'
-                    ? leaders(model)
-                    : model.view === 'notices'
-                      ? notices(model)
-                      : home(model),
-            model
-          );
+    model.view === 'admin' && !model.boot
+      ? '<main id="main" class="standalone-admin">' + adminView(model.admin) + '</main>'
+      : !model.boot && !model.sessionKnown
+        ? '<main id="main" class="loading-page"><h1 tabindex="-1">Открываем учебный рейс…</h1><p>Проверяем сессию и сохранённый прогресс. При ошибке используйте обновление состояния.</p></main>'
+        : !model.boot
+          ? welcome()
+          : shell(
+              model.view === 'admin'
+                ? adminView(model.admin)
+                : model.view === 'brief'
+                  ? briefing(model)
+                  : model.view === 'run'
+                    ? runView(model)
+                    : model.view === 'profile'
+                      ? profile(model)
+                      : model.view === 'leaderboard'
+                        ? leaders(model)
+                        : model.view === 'notices'
+                          ? notices(model)
+                          : home(model),
+              model
+            );
   const error = model.error
     ? '<section class="error-toast" role="alert" aria-label="Действие требует проверки"><strong>' +
       esc(model.error) +
@@ -168,9 +173,9 @@ export function render(model) {
   return (
     '<a class="skip-link" href="#main">К содержимому</a>' +
     connection +
-    '<div class="busy-indicator ' +
-    (model.busy ? 'visible' : '') +
-    '" role="status">Проверяем состояние. Действие отправляется один раз…</div>' +
+    '<span class="sr-only" role="status">' +
+    (model.busy ? 'Сохранение' : '') +
+    '</span>' +
     error +
     content
   );

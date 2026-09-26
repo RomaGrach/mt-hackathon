@@ -7,6 +7,7 @@ async function setup(t) {
   let now = Date.parse('2026-09-26T10:00:00Z');
   const app = createApp({
     database: ':memory:',
+    clockMode: null, // Pinned legacy schedule; elapsed clock has separate coverage.
     clock: () => now,
     sweep: false,
     rateLimit: 10000,
