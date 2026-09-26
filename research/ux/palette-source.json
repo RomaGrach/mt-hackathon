@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-09-26T17:03:53.563Z",
+  "page": "https://transport.mos.ru/",
+  "stylesheet": "https://transport.mos.ru/build/assets/global_functions-BHE9E_y0.css",
+  "cssSha256": "64848015a90b96c65ec2f1684e89a0afbab0c6a1de77b5c9b6f7bb63ab7df49d",
+  "primary": "#da2032",
+  "logo": "#e4000d",
+  "evidence": [
+    "nt-size:75%;line-height:0;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}a{color:#da2032;text-decoration:none;background-color:transparent}a:hover{color:#971623;text-decoration:underline}a",
+    "color:#495057;background-color:#fff;border-color:#ee8b95;outline:0;box-shadow:0 0 0 .2rem #da203240}.form-control::-moz-placeholder{color:#6c757d;opacity:1}.form-control::placeholder{color:#6c757d;",
+    "color:#212529;text-decoration:none}.btn:focus,.btn.focus{outline:0;box-shadow:0 0 0 .2rem #da203240}.btn.disabled,.btn:disabled{opacity:.65}.btn:not(:disabled):not(.disabled){cursor:pointer}a.btn.d",
+    "bled,fieldset:disabled a.btn{pointer-events:none}.btn-primary{color:#fff;background-color:#da2032;border-color:#da2032}.btn-primary:hover{color:#fff;background-color:#b91b2a;border-color:#ae1928}.b",
+    "0 .2rem #e0415180}.btn-primary.disabled,.btn-primary:disabled{color:#fff;background-color:#da2032;border-color:#da2032}.btn-primary:not(:disabled):not(.disabled):active,.btn-primary:not(:disabled):",
+    "tn-dark.dropdown-toggle:focus{box-shadow:0 0 0 .2rem #52585d80}.btn-outline-primary{color:#da2032;border-color:#da2032}.btn-outline-primary:hover{color:#fff;background-color:#da2032;border-color:#d",
+    "a2032}.btn-outline-primary:focus,.btn-outline-primary.focus{box-shadow:0 0 0 .2rem #da203280}.btn-outline-primary.disabled,.btn-outline-primary:disabled{color:#da2032;background-color:transp",
+    "(.disabled).active,.show>.btn-outline-primary.dropdown-toggle{color:#fff;background-color:#da2032;border-color:#da2032}.btn-outline-primary:not(:disabled):not(.disabled):active:focus,.btn-outline-p",
+    "led).active:focus,.show>.btn-outline-primary.dropdown-toggle:focus{box-shadow:0 0 0 .2rem #da203280}.btn-outline-secondary{color:#666f78;border-color:#666f78}.btn-outline-secondary:hover{color:#fff"
+  ],
+  "qualification": "Observed official Moscow Transport website CSS, not an approved VSM-400 brandbook. Neutral backgrounds and semantic warning/focus colours are UI adaptations."
+}

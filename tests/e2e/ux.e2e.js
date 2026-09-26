@@ -58,6 +58,7 @@ test('UX: live pages reflow at 320px and 200% text without losing actions', asyn
   await page.evaluate(() => (document.documentElement.style.fontSize = '200%'));
   await noOverflow(page);
   for (const view of ['profile', 'leaderboard', 'notices', 'home']) {
+    await page.locator('.site-menu > summary').click();
     await page.locator('.nav-item[data-view="' + view + '"]').click();
     await idle(page);
     await noOverflow(page);
@@ -148,7 +149,7 @@ test('UX: prototype observation, addressed task, retained focus, reload and read
 }, testInfo) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await overview(page);
-  await expect(page.locator('.preview-banner')).toContainText('Нет серверного зачёта');
+  await expect(page.locator('.preview-banner')).toContainText('Демо · без зачёта');
   await expect(page.locator('.incident-card')).toHaveCount(1);
   await step(page, 'Подойти к местам 18–19');
   await step(page, 'Уточнить обращение и пообещать вернуться');
@@ -181,6 +182,8 @@ test('UX: reduced motion, visible keyboard focus and current home screenshot', a
   await join(page);
   await noOverflow(page);
   await page.keyboard.press('Tab'); // Establish keyboard modality before checking :focus-visible.
+  await page.locator('.site-menu > summary').click();
+  await page.keyboard.press('Tab');
   await page.locator('.nav-item[data-view="home"]').focus();
   const focus = await page.locator('.nav-item[data-view="home"]').evaluate((el) => ({
     style: getComputedStyle(el).outlineStyle,

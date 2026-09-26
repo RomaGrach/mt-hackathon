@@ -26,6 +26,7 @@ try {
     'Локальное сохранение недоступно. Прототип можно посмотреть, но восстановление не гарантируется.';
 }
 let busy = false;
+let paintedPhase = null;
 function save() {
   try {
     sessionStorage.setItem(KEY, JSON.stringify(state));
@@ -39,14 +40,44 @@ function paint(focus = true, returnId = null) {
   save();
   const r = publicPreview(state);
   const critical = r.criticalWindow?.status === 'open';
-  root.innerHTML = `<header class="preview-header">${critical ? '<span class="wordmark">РЕЙС <b>400</b></span>' : '<a class="wordmark" href="/">РЕЙС <b>400</b></a>'}${critical ? '<span class="help">Критическое окно открыто</span>' : '<a class="text-back" href="/">← К рабочим модулям</a>'}</header><p class="preview-banner"><strong>UX-прототип.</strong> Нет серверного зачёта.</p>${storageWarning ? `<p role="status" class="connection-warning">${esc(storageWarning)}</p>` : ''}${state.phase === 'briefing' ? `<details class="preview-settings"><summary>Настройки учебной попытки</summary><form id="preview-config" class="panel"><label for="preview-mode">Режим прототипа</label><select name="mode" id="preview-mode"><option value="training" ${state.mode === 'training' ? 'selected' : ''}>Обучение — с учебной паузой</option><option value="assessment" ${state.mode === 'assessment' ? 'selected' : ''}>Проверка — без паузы</option></select><label for="preview-time">Время критического окна</label><select name="timing" id="preview-time"><option value="untimed" ${state.policy === 'untimed' ? 'selected' : ''}>Без таймера</option><option value="standard" ${state.policy === 'standard' ? 'selected' : ''}>Стандартное — 20 секунд</option><option value="extended" ${state.policy === 'extended' ? 'selected' : ''}>Увеличенное — 40 секунд (пример)</option></select><p class="help">Время — настройка прототипа, не профессиональный норматив. После начала режим фиксируется.</p></form></details>` : ''}${renderShift(r, { prototype: true })}${!critical ? `<footer class="prototype-tools"><p class="help">Сценарий и часы работают только в этой вкладке. Нет наград и защиты ответов; правила иллюстративные. Серверная интеграция — задача #26. Прототип не изменяет историю рабочих модулей. Перезагрузка восстанавливает его локальное состояние, пока доступно хранилище вкладки.</p><button type="button" class="outline-button" data-reset>Начать новый прототип</button></footer>` : ''}`;
+  const disclosures =
+    paintedPhase === state.phase
+      ? [...root.querySelectorAll('details[data-disclosure]')].map((el) => [
+          el.dataset.disclosure,
+          el.open,
+        ])
+      : [];
+  const activeId = document.activeElement?.id;
+  const settings =
+    state.phase === 'briefing'
+      ? `<details class="panel preview-settings" data-disclosure="config"><summary>Режим и время</summary><form id="preview-config"><label for="preview-mode">Режим</label><select name="mode" id="preview-mode"><option value="training" ${state.mode === 'training' ? 'selected' : ''}>Обучение — с паузой</option><option value="assessment" ${state.mode === 'assessment' ? 'selected' : ''}>Проверка — без паузы</option></select><label for="preview-time">Время в срочной сцене</label><select name="timing" id="preview-time"><option value="untimed" ${state.policy === 'untimed' ? 'selected' : ''}>Без таймера</option><option value="standard" ${state.policy === 'standard' ? 'selected' : ''}>20 секунд</option><option value="extended" ${state.policy === 'extended' ? 'selected' : ''}>40 секунд</option></select><p>Это настройка учебного примера, не профессиональный норматив. После начала она фиксируется.</p></form></details>`
+      : '';
+  const extraTools = `${state.phase !== 'result' ? '<button type="button" class="outline-button" data-reset>Начать заново</button>' : ''}<a class="text-back" href="/">К рабочим тренировкам →</a><p>Нет серверного зачёта. Сценарий и таймер работают в этой вкладке, без наград и защиты ответов. Перезагрузка восстанавливает локальное состояние, пока доступно хранилище. Демо не изменяет серверный профиль.</p>`;
+  let content = renderShift(r, { prototype: true }).replace('</main>', settings + '</main>');
+  const embeddedTools = content.includes('<!--preview-tools-->');
+  content = content.replace('<!--preview-tools-->', extraTools);
+  root.innerHTML = `<header class="preview-header"><span class="wordmark">РЕЙС <b>400</b></span><span class="preview-banner">Демо · без зачёта</span></header>${storageWarning ? '<p role="status" class="connection-warning">' + esc(storageWarning) + '</p>' : ''}${content}${!critical && !embeddedTools ? '<footer class="prototype-tools"><details data-disclosure="preview-menu"><summary>О демо</summary>' + extraTools + '</details></footer>' : ''}`;
+  for (const [id, open] of disclosures) {
+    const el = root.querySelector('[data-disclosure="' + CSS.escape(id) + '"]');
+    if (el) el.open = open;
+  }
+  paintedPhase = state.phase;
+  if (!focus && activeId) document.getElementById(activeId)?.focus({ preventScroll: true });
   root.setAttribute('aria-busy', 'false');
   if (focus) {
     const target = returnId
       ? root.querySelector(`[data-focus-incident="${CSS.escape(returnId)}"]`)
       : null;
-    (target || root.querySelector('h1'))?.focus({ preventScroll: true });
-    (target || root.querySelector('h1'))?.scrollIntoView({ block: 'start' });
+    if (target) {
+      for (let parent = target.parentElement; parent; parent = parent.parentElement)
+        if (parent.tagName === 'DETAILS') parent.open = true;
+      target.focus({ preventScroll: true });
+      const rect = target.getBoundingClientRect();
+      if (rect.top < 0 || rect.bottom > innerHeight) target.scrollIntoView({ block: 'nearest' });
+    } else {
+      root.querySelector('h1')?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
   }
 }
 root.addEventListener('change', (event) => {
@@ -56,6 +87,7 @@ root.addEventListener('change', (event) => {
       timingPolicyId: root.querySelector('#preview-time').value,
     });
     save();
+    paint(false);
   }
 });
 root.addEventListener('submit', (event) => event.preventDefault());

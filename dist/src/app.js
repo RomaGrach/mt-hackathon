@@ -16,6 +16,7 @@ const model = {
   offline: !navigator.onLine,
 };
 let ticker = null;
+let paintedKey = null;
 let sampledAt = performance.now();
 let sampledServer = Date.now();
 let pending = readPending();
@@ -30,7 +31,25 @@ function paint(focus = false) {
   const active = document.activeElement;
   const focusedId = active?.id;
   const focusedValue = active?.value;
+  const key =
+    model.view +
+    ':' +
+    (model.view === 'run'
+      ? model.run?.id + ':' + model.run?.phase + ':' + model.run?.nodeId
+      : model.brief || '');
+  const disclosures =
+    key === paintedKey
+      ? [...app.querySelectorAll('details[data-disclosure]')].map((el) => [
+          el.dataset.disclosure,
+          el.open,
+        ])
+      : [];
   app.innerHTML = render(model);
+  for (const [id, open] of disclosures) {
+    const el = app.querySelector('[data-disclosure="' + CSS.escape(id) + '"]');
+    if (el) el.open = open;
+  }
+  paintedKey = key;
   if (!focus && focusedId) {
     const restored = document.getElementById(focusedId);
     if (restored && focusedValue !== undefined) restored.value = focusedValue;

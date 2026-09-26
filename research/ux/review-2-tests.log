@@ -1,0 +1,176 @@
+Node.js v24.19.0 | win32 | Edge 154.0.4258.37
+Base: c93bd960df366ae9dae5471b6546327f40da5eac
+
+✔ conflict: все доступные пути конечны, границы шкал и критический запрет сохраняются (6.6714ms)
+✔ medical: все доступные пути конечны, границы шкал и критический запрет сохраняются (2.8424ms)
+✔ delay: все доступные пути конечны, границы шкал и критический запрет сохраняются (2.128ms)
+✔ service: все доступные пути конечны, границы шкал и критический запрет сохраняются (2.6508ms)
+✔ baggage: все доступные пути конечны, границы шкал и критический запрет сохраняются (2.259ms)
+✔ схема отклоняет отсутствующий переход, цикл и недостижимую сцену (1.9184ms)
+✔ серверный дедлайн: ранний null запрещён; на самой границе действует таймаут (0.7333ms)
+✔ обратная связь не запускает следующий таймер, продолжение запускает ровно один раз (0.1846ms)
+✔ условный вариант скрывает ключ оценивания и не может быть выбран без проверки (0.5328ms)
+✔ переигрывание — практика, но префикс решений и последствия сохранены (0.6172ms)
+✔ HTTP-сессия: HttpOnly/SameSite, профиль с сервера, нет token в JSON (63.3679ms)
+✔ HTTP полный сценарий, повтор отправки, refresh и отказ от поддельных points (181.4251ms)
+✔ защита от CSRF, некорректного JSON, лишних полей и слишком большого тела (78.4234ms)
+✔ static allowlist не раскрывает исходники сервера, БД, git и конфиги (141.0474ms)
+✔ HR API: ключ обязателен, только чтение, курсоры и лимит валидируются (73.7557ms)
+✔ интеграция без настроенного ключа выключена, rate-limit предсказуем (45.6634ms)
+✔ неизвестный scope предсказуемо отклоняется; OpenAPI доступен (62.4063ms)
+✔ профиль синтетический, сессия истекает, чужие попытки недоступны (12.1924ms)
+✔ idempotency start/decision: один переход и одна запись, другой payload не принят (5.9203ms)
+✔ таймаут применяется на сервере без открытой страницы и не дублируется (3.2822ms)
+✔ полная смена: баллы, семь правил достижений, общие рейтинги и повтор без фарма (41.7902ms)
+✔ практика и незачёт исключены из рейтинга, но доступны для разбора (30.7227ms)
+✔ челлендж выдаётся один раз, сезонные бонусы истекают, уведомления читаются (15.5838ms)
+✔ экспорт без credentials, пагинация HR и каскадное удаление (8.6362ms)
+✔ SQLite переживает рестарт; тот же номер версии нельзя молча переписать (30.986ms)
+✔ база будущей версии не понижается и не изменяется при запуске (26.648ms)
+✔ pending survives reload exactly; corrupted storage is never transmitted (3.171ms)
+✔ storage failure rejects BEFORE transmission; uncertain errors remain recoverable (0.8906ms)
+✔ v2 action encoder whitelists fields, not scores, clocks or answer keys (0.4287ms)
+✔ v2 lost response: a new client restores exact request then GETs current run (1.0374ms)
+✔ v2 stale command reconciles without submitting a new revision (0.7268ms)
+✔ v2 simultaneous click rejected while first command is outstanding (1.4692ms)
+✔ v2 401 clears receipt and session; unavailable versions are not replaced (1.4617ms)
+✔ prototype overview has no undiscovered B; switching is not a work step (2.4382ms)
+✔ prototype promise is addressed to p1 and persists between scenes (0.9178ms)
+✔ prototype pending critical has no choices/deadline; continue opens window atomically (1.2086ms)
+✔ prototype timeout at exact boundary happens once and survives serialization (0.5726ms)
+✔ prototype training pause preserves remaining time; assessment cannot pause (0.8299ms)
+✔ prototype request, acknowledgement and completion are separate; wrong recipient does not complete task (0.6863ms)
+✔ prototype safe action at due step prevents escalation; repeated observation gives no score (0.3654ms)
+✔ assessment rendering suppresses pedagogical hints and escapes supplied content (0.52ms)
+✔ transport does not automatically retry unkeyed session creation (0.6921ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 815.6186
+
+
+Running 34 tests using 1 worker
+
+  ok  1 [desktop] › tests\e2e\focus.e2e.js:34:1 › Focus: home has one start action, optional catalogue and one menu (974ms)
+  ok  2 [desktop] › tests\e2e\focus.e2e.js:49:1 › Focus: two work controls, whole-card navigation, all choices remain visible (1.1s)
+  ok  3 [desktop] › tests\e2e\focus.e2e.js:79:1 › Focus: 320px and enlarged text retain all core choices and large targets (920ms)
+  ok  4 [desktop] › tests\e2e\focus.e2e.js:102:1 › Focus: settings persist, critical choices stay visible, pause preserves time (1.3s)
+  ok  5 [desktop] › tests\e2e\focus.e2e.js:139:1 › Focus: transport red passes text contrast; decision alternatives have equal styling (374ms)
+  ok  6 [desktop] › tests\e2e\game.e2e.js:103:1 › полное прохождение, разбор, профиль и три общих рейтинга (2.2s)
+  ok  7 [desktop] › tests\e2e\game.e2e.js:124:1 › reload не сбрасывает дедлайн, таймаут и критическая ошибка сохраняются (1.6s)
+  ok  8 [desktop] › tests\e2e\game.e2e.js:143:1 › переигрывание произвольной развилки не даёт повторных рейтинговых очков (2.0s)
+  ok  9 [desktop] › tests\e2e\game.e2e.js:159:1 › уведомления, смена бригады, экспорт и удаление профиля (1.7s)
+  ok 10 [desktop] › tests\e2e\game.e2e.js:181:1 › потерянный сетевой ответ не удваивает решение (2.0s)
+  ok 11 [desktop] › tests\e2e\game.e2e.js:201:1 › узкий экран: навигация с непрочитанными уведомлениями не расширяет страницу (778ms)
+  ok 12 [desktop] › tests\e2e\ux.e2e.js:55:1 › UX: live pages reflow at 320px and 200% text without losing actions (1.1s)
+  ok 13 [desktop] › tests\e2e\ux.e2e.js:80:1 › UX: two synchronous clicks produce exactly one server decision (664ms)
+  ok 14 [desktop] › tests\e2e\ux.e2e.js:100:1 › UX: both responses lost, reload recovers stored receipt without duplicating choice (2.0s)
+  ok 15 [desktop] › tests\e2e\ux.e2e.js:131:1 › UX: initial connection failure offers retry, offline is not a pause (1.6s)
+  ok 16 [desktop] › tests\e2e\ux.e2e.js:147:1 › UX: prototype observation, addressed task, retained focus, reload and readable mobile (1.0s)
+  ok 17 [desktop] › tests\e2e\ux.e2e.js:178:1 › UX: reduced motion, visible keyboard focus and current home screenshot (632ms)
+  ok 18 [mobile] › tests\e2e\focus.e2e.js:34:1 › Focus: home has one start action, optional catalogue and one menu (960ms)
+  ok 19 [mobile] › tests\e2e\focus.e2e.js:49:1 › Focus: two work controls, whole-card navigation, all choices remain visible (1.3s)
+  ok 20 [mobile] › tests\e2e\focus.e2e.js:79:1 › Focus: 320px and enlarged text retain all core choices and large targets (1.1s)
+  ok 21 [mobile] › tests\e2e\focus.e2e.js:102:1 › Focus: settings persist, critical choices stay visible, pause preserves time (1.3s)
+  ok 22 [mobile] › tests\e2e\focus.e2e.js:139:1 › Focus: transport red passes text contrast; decision alternatives have equal styling (484ms)
+  ok 23 [mobile] › tests\e2e\game.e2e.js:103:1 › полное прохождение, разбор, профиль и три общих рейтинга (1.9s)
+  ok 24 [mobile] › tests\e2e\game.e2e.js:124:1 › reload не сбрасывает дедлайн, таймаут и критическая ошибка сохраняются (1.6s)
+  ok 25 [mobile] › tests\e2e\game.e2e.js:143:1 › переигрывание произвольной развилки не даёт повторных рейтинговых очков (2.0s)
+  ok 26 [mobile] › tests\e2e\game.e2e.js:159:1 › уведомления, смена бригады, экспорт и удаление профиля (1.4s)
+  ok 27 [mobile] › tests\e2e\game.e2e.js:181:1 › потерянный сетевой ответ не удваивает решение (2.0s)
+  ok 28 [mobile] › tests\e2e\game.e2e.js:201:1 › узкий экран: навигация с непрочитанными уведомлениями не расширяет страницу (806ms)
+  ok 29 [mobile] › tests\e2e\ux.e2e.js:55:1 › UX: live pages reflow at 320px and 200% text without losing actions (1.2s)
+  ok 30 [mobile] › tests\e2e\ux.e2e.js:80:1 › UX: two synchronous clicks produce exactly one server decision (776ms)
+  ok 31 [mobile] › tests\e2e\ux.e2e.js:100:1 › UX: both responses lost, reload recovers stored receipt without duplicating choice (1.7s)
+  ok 32 [mobile] › tests\e2e\ux.e2e.js:131:1 › UX: initial connection failure offers retry, offline is not a pause (1.4s)
+  ok 33 [mobile] › tests\e2e\ux.e2e.js:147:1 › UX: prototype observation, addressed task, retained focus, reload and readable mobile (1.2s)
+  ok 34 [mobile] › tests\e2e\ux.e2e.js:178:1 › UX: reduced motion, visible keyboard focus and current home screenshot (725ms)
+
+  34 passed (46.5s)
+
+Initial check pass (format finding, corrected with Prettier --write):
+[
+  {
+    "command": "node scripts/check.mjs",
+    "exitCode": 0,
+    "output": "Syntax checked: 31 modules; API JSON parsed.\n"
+  },
+  {
+    "command": "node scripts/validate-scenarios.mjs",
+    "exitCode": 0,
+    "output": "conflict@2.0.0: 10 decisions, 4 endings\nmedical@2.0.0: 7 decisions, 3 endings\ndelay@2.0.0: 7 decisions, 3 endings\nservice@2.0.0: 7 decisions, 3 endings\nbaggage@2.0.0: 7 decisions, 3 endings\n"
+  },
+  {
+    "command": "node node_modules/prettier/bin/prettier.cjs --check backend src scripts tests server.mjs playwright.config.js styles.css",
+    "exitCode": 1,
+    "output": "Checking formatting...\n[\u001b[33mwarn\u001b[39m] tests/e2e/focus.e2e.js\n[\u001b[33mwarn\u001b[39m] Code style issues found in the above file. Run Prettier with --write to fix.\n"
+  }
+]
+Final checks:
+[
+  {
+    "command": "node scripts/check.mjs",
+    "exitCode": 0,
+    "output": "Syntax checked: 31 modules; API JSON parsed.\n"
+  },
+  {
+    "command": "node scripts/validate-scenarios.mjs",
+    "exitCode": 0,
+    "output": "conflict@2.0.0: 10 decisions, 4 endings\nmedical@2.0.0: 7 decisions, 3 endings\ndelay@2.0.0: 7 decisions, 3 endings\nservice@2.0.0: 7 decisions, 3 endings\nbaggage@2.0.0: 7 decisions, 3 endings\n"
+  },
+  {
+    "command": "node node_modules/prettier/bin/prettier.cjs --check backend src scripts tests server.mjs playwright.config.js styles.css",
+    "exitCode": 0,
+    "output": "Checking formatting...\nAll matched files use Prettier code style!\n"
+  },
+  {
+    "command": "node scripts/build-site.mjs",
+    "exitCode": 0,
+    "output": "Frontend built in dist/. Serve /api using the matching backend, never as a standalone static demo.\n"
+  }
+]
+
+Post-format full browser confirmation (no capture):
+
+Running 34 tests using 1 worker
+
+  ok  1 [desktop] › tests\e2e\focus.e2e.js:34:1 › Focus: home has one start action, optional catalogue and one menu (1.0s)
+  ok  2 [desktop] › tests\e2e\focus.e2e.js:49:1 › Focus: two work controls, whole-card navigation, all choices remain visible (864ms)
+  ok  3 [desktop] › tests\e2e\focus.e2e.js:79:1 › Focus: 320px and enlarged text retain all core choices and large targets (865ms)
+  ok  4 [desktop] › tests\e2e\focus.e2e.js:102:1 › Focus: settings persist, critical choices stay visible, pause preserves time (989ms)
+  ok  5 [desktop] › tests\e2e\focus.e2e.js:139:1 › Focus: transport red passes text contrast; decision alternatives have equal styling (350ms)
+  ok  6 [desktop] › tests\e2e\game.e2e.js:103:1 › полное прохождение, разбор, профиль и три общих рейтинга (1.9s)
+  ok  7 [desktop] › tests\e2e\game.e2e.js:124:1 › reload не сбрасывает дедлайн, таймаут и критическая ошибка сохраняются (1.6s)
+  ok  8 [desktop] › tests\e2e\game.e2e.js:143:1 › переигрывание произвольной развилки не даёт повторных рейтинговых очков (2.0s)
+  ok  9 [desktop] › tests\e2e\game.e2e.js:159:1 › уведомления, смена бригады, экспорт и удаление профиля (1.5s)
+  ok 10 [desktop] › tests\e2e\game.e2e.js:181:1 › потерянный сетевой ответ не удваивает решение (2.0s)
+  ok 11 [desktop] › tests\e2e\game.e2e.js:201:1 › узкий экран: навигация с непрочитанными уведомлениями не расширяет страницу (761ms)
+  ok 12 [desktop] › tests\e2e\ux.e2e.js:55:1 › UX: live pages reflow at 320px and 200% text without losing actions (1.1s)
+  ok 13 [desktop] › tests\e2e\ux.e2e.js:80:1 › UX: two synchronous clicks produce exactly one server decision (600ms)
+  ok 14 [desktop] › tests\e2e\ux.e2e.js:100:1 › UX: both responses lost, reload recovers stored receipt without duplicating choice (2.0s)
+  ok 15 [desktop] › tests\e2e\ux.e2e.js:131:1 › UX: initial connection failure offers retry, offline is not a pause (1.3s)
+  ok 16 [desktop] › tests\e2e\ux.e2e.js:147:1 › UX: prototype observation, addressed task, retained focus, reload and readable mobile (899ms)
+  ok 17 [desktop] › tests\e2e\ux.e2e.js:178:1 › UX: reduced motion, visible keyboard focus and current home screenshot (491ms)
+  ok 18 [mobile] › tests\e2e\focus.e2e.js:34:1 › Focus: home has one start action, optional catalogue and one menu (1.1s)
+  ok 19 [mobile] › tests\e2e\focus.e2e.js:49:1 › Focus: two work controls, whole-card navigation, all choices remain visible (907ms)
+  ok 20 [mobile] › tests\e2e\focus.e2e.js:79:1 › Focus: 320px and enlarged text retain all core choices and large targets (936ms)
+  ok 21 [mobile] › tests\e2e\focus.e2e.js:102:1 › Focus: settings persist, critical choices stay visible, pause preserves time (1.1s)
+  ok 22 [mobile] › tests\e2e\focus.e2e.js:139:1 › Focus: transport red passes text contrast; decision alternatives have equal styling (392ms)
+  ok 23 [mobile] › tests\e2e\game.e2e.js:103:1 › полное прохождение, разбор, профиль и три общих рейтинга (2.1s)
+  ok 24 [mobile] › tests\e2e\game.e2e.js:124:1 › reload не сбрасывает дедлайн, таймаут и критическая ошибка сохраняются (1.6s)
+  ok 25 [mobile] › tests\e2e\game.e2e.js:143:1 › переигрывание произвольной развилки не даёт повторных рейтинговых очков (1.9s)
+  ok 26 [mobile] › tests\e2e\game.e2e.js:159:1 › уведомления, смена бригады, экспорт и удаление профиля (1.4s)
+  ok 27 [mobile] › tests\e2e\game.e2e.js:181:1 › потерянный сетевой ответ не удваивает решение (2.3s)
+  ok 28 [mobile] › tests\e2e\game.e2e.js:201:1 › узкий экран: навигация с непрочитанными уведомлениями не расширяет страницу (709ms)
+  ok 29 [mobile] › tests\e2e\ux.e2e.js:55:1 › UX: live pages reflow at 320px and 200% text without losing actions (1.1s)
+  ok 30 [mobile] › tests\e2e\ux.e2e.js:80:1 › UX: two synchronous clicks produce exactly one server decision (655ms)
+  ok 31 [mobile] › tests\e2e\ux.e2e.js:100:1 › UX: both responses lost, reload recovers stored receipt without duplicating choice (2.0s)
+  ok 32 [mobile] › tests\e2e\ux.e2e.js:131:1 › UX: initial connection failure offers retry, offline is not a pause (1.8s)
+  ok 33 [mobile] › tests\e2e\ux.e2e.js:147:1 › UX: prototype observation, addressed task, retained focus, reload and readable mobile (958ms)
+  ok 34 [mobile] › tests\e2e\ux.e2e.js:178:1 › UX: reduced motion, visible keyboard focus and current home screenshot (547ms)
+
+  34 passed (44.3s)
