@@ -65,6 +65,8 @@ function actionButton(a, i) {
     finish: '⚑',
     abort: '×',
   };
+  if (a.command === 'abort')
+    return `<details class="inline-confirm"><summary>Прервать смену</summary><p>История сохранится без зачёта. Прервать смену?</p><button class="outline-button" data-shift-action="${i}">Да, прервать</button><button class="text-back" data-cancel-confirm>Продолжить игру</button></details>`;
   return `<button type="button" class="${['choose', 'begin', 'continue', 'resume', 'finish'].includes(a.command) ? 'option' : 'outline-button'}" data-shift-action="${i}" ${a.command === 'focus' ? `data-focus-incident="${esc(a.incidentId)}"` : ''} ${a.available === false ? 'disabled aria-disabled="true"' : ''}><span class="action-icon" aria-hidden="true">${icons[a.command] || '→'}</span><span class="option-copy"><strong>${esc(a.label)}</strong>${a.unavailableReason ? `<small>${esc(a.unavailableReason)}</small>` : ''}</span>${a.durationSeconds > 0 ? `<span class="action-duration">◷ ${durationLabel(a.durationSeconds)}</span>` : ''}</button>`;
 }
 export function shiftHud(run) {
@@ -143,21 +145,23 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
   const current = run.incidents?.find((i) => i.id === run.focusIncidentId);
   const location =
     run.stage === 'inspection' ? 'Тамбур · приёмка' : current?.label || 'Обзор вагона';
-  const map = `<p class="sheet-intro">Вагон 3 · ${esc(location)}</p><div class="wagon-map"><div class="wagon-end">Тамбур · приёмка</div><div class="zone-card">Места 18–19</div><div class="wagon-aisle">Проход</div><div class="zone-card">Салон</div><div class="wagon-end">Условная схема зон · не план мест</div></div><h3>Известные ситуации</h3>${cases || '<p>После приёмки станут доступны обращения.</p>'}${run.stage === 'service' && run.incidents?.length < 2 ? '<p class="muted">Салон ещё не осмотрен. Новые обстоятельства появятся после осмотра.</p>' : ''}`;
+  const map = `<p class="location-tag">Вы здесь: ${esc(location)}</p><div class="wagon-route" aria-label="Зоны вагона"><span>Тамбур</span><span>Места 18–19</span><span>Проход</span><span>Салон</span></div><h2>Известные ситуации</h2>${cases || '<p>После приёмки станут доступны обращения.</p>'}${run.stage === 'service' && run.incidents?.length < 2 ? '<p class="muted">Салон ещё не осмотрен. Осмотр откроет новые обстоятельства.</p>' : ''}`;
   const count = (run.tasks || []).filter(
     (t) => !['completed', 'cancelled'].includes(t.status)
   ).length;
   body = `<p class="location-tag">◉ Вагон 3 · ${esc(location)}</p>` + body;
-  const sheets =
-    sheet('tasks', 'Задачи смены', tasks(run)) +
-    sheet('map', 'Карта вагона', map) +
-    sheet('help', 'Как играть', tutorialContent) +
-    sheet(
-      'tools',
-      'Управление сменой',
-      `<div class="shift-actions">${tools}</div><button data-action="nav" data-view="home">⌂ На главную</button><p>Чтение и переходы · 0 с. Срочный таймер продолжает идти, пока не включена учебная пауза.</p>`
-    );
-  const dock = `<nav class="game-dock" aria-label="Панели смены"><button data-open-sheet="map"><span>▦</span>Вагон</button><button data-open-sheet="tasks"><span>☑ <b>${count}</b></span>Задачи</button><button data-open-sheet="help"><span>?</span>Обучение</button><button data-open-sheet="tools"><span>•••</span>Ещё</button></nav>`;
+  const panes = `<section class="game-pane" data-game-pane="map" hidden><h1 tabindex="-1">Вагон 3</h1>${map}</section><section class="game-pane" data-game-pane="tasks" hidden><h1 tabindex="-1">Задачи</h1>${tasks(run)}</section><section class="game-pane" data-game-pane="tools" hidden><h1 tabindex="-1">Управление</h1><div class="shift-actions">${tools}</div><button class="text-back" data-action="nav" data-view="home">⌂ На главную</button><button class="text-back" data-tutorial-start>Пройти обучение ещё раз</button><p class="muted">Переходы не тратят игровое время. Срочный таймер продолжает идти до учебной паузы.</p></section>`;
+  const dock = `<nav class="game-dock" aria-label="Разделы смены">${[
+    ['scene', '◉', 'Ситуация'],
+    ['map', '▦', 'Вагон'],
+    ['tasks', '☑', 'Задачи'],
+    ['tools', '•••', 'Ещё'],
+  ]
+    .map(
+      ([id, icon, label]) =>
+        `<button data-game-tab="${id}" ${id === 'scene' ? 'aria-current="page"' : ''}><span aria-hidden="true">${icon}${id === 'tasks' ? ` <b>${count}</b>` : ''}</span>${label}</button>`
+    )
+    .join('')}</nav>`;
   // Keep choices anchored while only the long narrative scrolls on small displays.
   const actionAt = body.indexOf('<div class="shift-actions">');
   if (actionAt >= 0 && run.phase !== 'result') {
@@ -165,5 +169,5 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
     body = `<div class="scene-content">${body.slice(0, actionAt)}${body.slice(end)}</div>${body.slice(actionAt, end)}`;
   }
   const tag = embedded ? 'section' : 'main';
-  return `<${tag} ${embedded ? '' : 'id="main"'} class="shift-console" data-phase="${esc(run.phase)}">${hud}<div class="shift-stage">${body.replaceAll('в списке обещаний', 'в списке задач')}</div>${dock}${sheets}</${tag}>`;
+  return `<${tag} ${embedded ? '' : 'id="main"'} class="shift-console" data-phase="${esc(run.phase)}">${hud}<div class="shift-stage" data-game-pane="scene">${body.replaceAll('в списке обещаний', 'в списке задач')}</div>${panes}${dock}</${tag}>`;
 }

@@ -12,9 +12,7 @@ export class SqlJsStore {
     this.db.exec(
       'CREATE TABLE IF NOT EXISTS runtime_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)'
     );
-    this.db.exec(
-      [...BASE_STATEMENTS, ...(version === 0 ? ['PRAGMA user_version=1'] : [])].join(';')
-    );
+    if (version === 0) this.db.exec([...BASE_STATEMENTS, 'PRAGMA user_version=1'].join(';'));
     if (version < 2) this.transaction(() => migrateV2(this.db));
   }
   all(sql, ...args) {

@@ -1,10 +1,14 @@
 import initSqlJs from 'sql.js/dist/sql-asm.js';
 import { httpServerHandler } from 'cloudflare:node';
 import { createApp } from '../backend/http.js';
+import { scenarios } from '../backend/catalog.js';
+import { SHIFT_CONTENT, contentHash } from '../backend/shift-content.js';
 import { SqlJsStore } from './sqljs-store.js';
 
 const assets = __STATIC_ASSETS__;
 const sqlReady = initSqlJs();
+// Revalidate/re-publish content once per deployed content revision, not on every tap.
+const publicationFingerprint = contentHash({ scenarios, shift: SHIFT_CONTENT });
 const security = {
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'no-referrer',
@@ -67,7 +71,11 @@ async function gameRequest(request, env, context) {
       const backfillLegacy = !store.get(
         "SELECT value FROM runtime_metadata WHERE key='legacy_awards_backfilled'"
       );
+      const publishContent =
+        store.get("SELECT value FROM runtime_metadata WHERE key='publication_fingerprint'")
+          ?.value !== publicationFingerprint;
       const app = createApp({
+        publishContent,
         backfillLegacy,
         store,
         publicOrigin: new URL(request.url).origin,
@@ -76,6 +84,11 @@ async function gameRequest(request, env, context) {
       });
       if (backfillLegacy)
         store.run("INSERT INTO runtime_metadata VALUES('legacy_awards_backfilled','1')");
+      if (publishContent)
+        store.run(
+          "INSERT OR REPLACE INTO runtime_metadata VALUES('publication_fingerprint',?)",
+          publicationFingerprint
+        );
       server = app.server;
       const handler = httpServerHandler(server);
       const served = await handler.fetch(request.clone(), env, context);

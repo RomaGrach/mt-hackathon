@@ -14,6 +14,7 @@ test('Sites SQL adapter retains a session, ShiftRun, deadline and receipt after 
     const store = new SqlJsStore(SQL, image);
     app = createApp({
       store,
+      publishContent: !image,
       sweep: false,
       publicOrigin: 'https://site.example',
       secureCookie: true,
@@ -91,7 +92,8 @@ test('Sites snapshot read-only request has no data writes after bootstrap', asyn
   first.close();
   const reloaded = new SqlJsStore(SQL, image);
   try {
-    new Service(reloaded, { backfillLegacy: false });
+    const service = new Service(reloaded, { backfillLegacy: false, publishContent: false });
+    assert.ok(service.shifts.catalog().length > 0);
     adminUsers(reloaded, new URLSearchParams());
     assert.equal(reloaded.hasChanges(), false);
     reloaded.run("INSERT INTO runtime_metadata VALUES('test-write','1')");

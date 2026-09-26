@@ -25,13 +25,14 @@ export class Service {
       catalog = defaultCatalog,
       clockMode = 'elapsed',
       backfillLegacy = true,
+      publishContent = true,
     } = {}
   ) {
     this.store = store;
     this.clock = clock;
     this.catalog = catalog;
-    store.publish(catalog, clock());
-    this.shifts = new ShiftService(store, { clock, clockMode });
+    if (publishContent) store.publish(catalog, clock());
+    this.shifts = new ShiftService(store, { clock, clockMode, publishContent });
     if (backfillLegacy)
       store.transaction(() => {
         for (const row of store.all('SELECT id FROM profiles'))

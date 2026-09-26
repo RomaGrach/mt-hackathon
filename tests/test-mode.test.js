@@ -111,7 +111,10 @@ test('screen UI retains every visible task and all offered actions across a full
       h.run.actions.forEach((a, i) =>
         assert.ok(html.includes(`data-shift-action="${i}"`), a.label)
       );
-      assert.ok(html.includes('Задачи смены'));
+      assert.ok(html.includes('data-game-pane="tasks"'));
+      assert.ok(!html.includes('<dialog'));
+      assert.ok(!html.includes('data-open-sheet'));
+      assert.ok(!html.includes('data-game-tab="help"'));
       assert.ok(!html.includes('Обещания'));
     };
     verify();
