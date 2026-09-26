@@ -88,6 +88,8 @@ async function early(page, serviceClass = null) {
   await work(page, 'verify-and-request');
   await action(page, 'continue');
   await action(page, 'wait');
+  await action(page, 'continue');
+  await action(page, 'wait');
   await work(page, 'confirm-and-return-p1');
   return finish(page);
 }
@@ -96,8 +98,11 @@ async function late(page) {
   await work(page, 'inspect-predeparture', null);
   await work(page, 'acknowledge-and-promise');
   await work(page, 'verify-and-request');
-  await action(page, 'continue');
-  await action(page, 'wait');
+  let run = await state(page);
+  while (!run.criticalWindow) {
+    await action(page, 'continue');
+    run = await action(page, 'wait');
+  }
   return action(page, 'continue');
 }
 async function nav(page, view) {
@@ -137,6 +142,8 @@ test('v2 реальная смена → разбор → XP → профиль,
   await screenshot(page, 'overview', info);
   await work(page, 'clear-aisle', 'b-aisle');
   await work(page, 'verify-and-request');
+  await action(page, 'continue');
+  await action(page, 'wait');
   await action(page, 'continue');
   await action(page, 'wait');
   await work(page, 'confirm-and-return-p1');
@@ -225,6 +232,8 @@ test('v2 потерянный ответ команды и ack: reload восс�
   await work(page, 'verify-and-request');
   await action(page, 'continue');
   await action(page, 'wait');
+  await action(page, 'continue');
+  await action(page, 'wait');
   await work(page, 'confirm-and-return-p1');
   await finish(page);
   let loseAck = true;
@@ -286,4 +295,30 @@ test('v2 добровольное соревнование, собственны
   await nav(page, 'leaderboard');
   await expect(page.getByText('100 из 100 СП', { exact: false }).first()).toBeVisible();
   await expect(page.locator('.v2-leader-table')).toHaveCount(0);
+});
+
+test('v2 idle makes no run GET requests; focus refreshes once', async ({ page }) => {
+  await join(page);
+  await start(page);
+  let gets = 0;
+  page.on('request', (r) => {
+    if (r.method() === 'GET' && /\/api\/(v2\/)?runs\/[^/]+$/.test(r.url())) gets++;
+  });
+  await page.waitForTimeout(9000);
+  expect(gets).toBe(0);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect.poll(() => gets).toBe(1);
+  await idle(page);
+});
+
+test('public admin opens from welcome without creating a profile', async ({ page }) => {
+  await page.goto(origin);
+  await idle(page);
+  await page.locator('.admin-entry').click();
+  await idle(page);
+  await expect(page.getByRole('heading', { name: 'Игроки и прохождения' })).toBeVisible();
+  expect((await page.request.get(origin + '/api/bootstrap')).status()).toBe(401);
+  await page.reload();
+  await idle(page);
+  await expect(page.getByRole('heading', { name: 'Игроки и прохождения' })).toBeVisible();
 });

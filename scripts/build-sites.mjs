@@ -15,6 +15,7 @@ const files = [
   'src/ux.js',
   'src/recovery.js',
   'src/shift-view.js',
+  'src/prototype-shift-view.js',
   'src/shift-client.js',
   'src/preview-state.js',
   'src/preview-app.js',

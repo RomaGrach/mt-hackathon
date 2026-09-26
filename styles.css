@@ -1859,10 +1859,10 @@ button:disabled { opacity: .78; cursor: wait; }
 .shift-stage .scene-card .speaker { font-size: 12px; font-weight: 700; color: #526e9b; }
 .shift-stage .feedback-card { background: #edf7f3; border-color: #cfe5da; }
 .decision-label { font-size: 16px; margin: 10px 0; }
-.shift-actions { display: grid; gap: 8px; margin: 10px 0 16px; }
-.shift-actions button { display: flex; align-items: center; gap: 10px; padding: 12px; width: 100%; border: 1px solid #cbd7e7; background: white; color: #243a5b; text-align: left; box-shadow: none; }
-.shift-actions button:hover:not(:disabled) { background: #f0f5ff; border-color: #7696ca; transform: none; }
-.shift-actions .option strong { font-size: 15px; line-height: 1.4; }
+.shift-console .shift-actions { display: grid; gap: 8px; margin: 10px 0 16px; }
+.shift-console .shift-actions button { display: flex; align-items: center; gap: 10px; padding: 12px; width: 100%; border: 1px solid #cbd7e7; background: white; color: #243a5b; text-align: left; box-shadow: none; }
+.shift-console .shift-actions button:hover:not(:disabled) { background: #f0f5ff; border-color: #7696ca; transform: none; }
+.shift-console .shift-actions .option strong { font-size: 15px; line-height: 1.4; }
 .action-icon { display: grid; place-items: center; flex: 0 0 28px; height: 28px; border-radius: 8px; background: #edf2fa; color: #4269a6; }
 .option-copy { flex: 1; }
 .action-duration { flex: 0 0 auto; white-space: nowrap; font-size: 12px; font-weight: 600; color: #61738d; background: #f0f3f8; border-radius: 6px; padding: 4px 7px; }
@@ -1875,7 +1875,7 @@ button:disabled { opacity: .78; cursor: wait; }
 .hint-card { background: #fff6dc; padding: 12px; border-radius: 10px; font-size: 14px; }
 .app-footer { margin-top: 16px; padding: 10px 0; font-size: 12px; }
 .site-menu nav { min-width: 220px; background: white; box-shadow: 0 12px 30px #142c4820; }
-.site-menu .nav-item { min-height: 42px; }
+.site-menu .nav-item { min-height: 44px; }
 .admin-toolbar { display: flex; gap: 14px; align-items: center; margin: 12px 0; }
 .standalone-admin { padding: 28px; max-width: 1100px; margin: auto; }
 .table-scroll { overflow-x: auto; border: 1px solid #dce3ec; border-radius: 12px; background: white; }
@@ -1908,9 +1908,11 @@ button:disabled { opacity: .78; cursor: wait; }
  .shift-stage { width: 100%; min-height: 360px; padding: 14px; box-sizing: border-box; }
  .shift-stage .page-heading h1 { font-size: 22px; }
  .shift-stage .scene-card { padding: 12px; }
- .shift-actions .option strong { font-size: 14px; }
+ .shift-console .shift-actions .option strong { font-size: 14px; }
  .action-duration { font-size: 11px; padding: 4px; }
  .action-icon { flex-basis: 22px; height: 22px; }
  .panel { padding: 14px; }
 }
 @media(prefers-reduced-motion:reduce) { * { animation: none !important; transition: none !important; } }
+
+.preview-shell [data-shift-action] { min-height: 64px; }

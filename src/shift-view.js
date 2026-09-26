@@ -1,3 +1,4 @@
+import { renderShift as renderPrototype } from './prototype-shift-view.js';
 import { esc, heading } from './ui.js';
 
 const statuses = {
@@ -73,6 +74,7 @@ function tasks(run) {
   return `<section class="promise-list" aria-label="Обещания"><h3>◷ Обещания <small>${active.length}</small></h3>${active.length ? active.map((t) => `<div class="promise ${t.overdue ? 'overdue' : ''}"><strong>${esc(t.label)}</strong><small>${t.overdue ? 'Срок пропущен · вернитесь к пассажиру' : t.dueSeconds != null ? `До ${clockLabel(t.dueSeconds)} · осталось ${durationLabel(Math.max(0, t.dueSeconds - run.simulationSeconds))}` : 'Завершите в этой смене'}</small></div>`).join('') : '<p class="muted">Нет открытых обещаний</p>'}</section>`;
 }
 export function renderShift(run, { prototype = false, embedded = false } = {}) {
+  if (prototype) return renderPrototype(run, { prototype, embedded });
   if (!run)
     return '<section class="reading-column"><h1 tabindex="-1">Открываем смену…</h1></section>';
   if (

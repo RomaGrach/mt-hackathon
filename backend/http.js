@@ -17,6 +17,7 @@ const PUBLIC = new Map([
   ['/src/ux.js', ['src/ux.js', 'text/javascript']],
   ['/src/recovery.js', ['src/recovery.js', 'text/javascript']],
   ['/src/shift-view.js', ['src/shift-view.js', 'text/javascript']],
+  ['/src/prototype-shift-view.js', ['src/prototype-shift-view.js', 'text/javascript']],
   ['/src/shift-client.js', ['src/shift-client.js', 'text/javascript']],
   ['/src/preview-state.js', ['src/preview-state.js', 'text/javascript']],
   ['/src/preview-app.js', ['src/preview-app.js', 'text/javascript']],

@@ -45,7 +45,7 @@ test('Focus: home has one start action, optional catalogue and one menu', async 
   await page.locator('[data-disclosure=catalog] > summary').click();
   await expect(page.locator('.scenario-card:visible')).toHaveCount(5);
   await page.locator('.site-menu > summary').click();
-  await expect(page.locator('.nav-item:visible')).toHaveCount(4);
+  await expect(page.locator('.nav-item:visible')).toHaveCount(5);
 });
 test('Focus: two work controls, whole-card navigation, all choices remain visible', async ({
   page,
