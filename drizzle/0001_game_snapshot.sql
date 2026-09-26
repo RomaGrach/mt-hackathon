@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS game_snapshot (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  revision INTEGER NOT NULL,
+  image BLOB NOT NULL
+);

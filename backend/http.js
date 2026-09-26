@@ -7,7 +7,6 @@ import { GameError } from './engine.js';
 import { Store } from './storage.js';
 import { Service } from './service.js';
 
-const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const PUBLIC = new Map([
   ['/', ['index.html', 'text/html']],
   ['/index.html', ['index.html', 'text/html']],
@@ -148,7 +147,7 @@ export function createApp({
       const method = req.method;
       if ((method === 'GET' || method === 'HEAD') && PUBLIC.has(pathname)) {
         const [file, type] = PUBLIC.get(pathname);
-        const data = await readFile(resolve(ROOT, file));
+        const data = await readFile(resolve(fileURLToPath(new URL('../', import.meta.url)), file));
         res.writeHead(200, { 'Content-Type': type + '; charset=utf-8' });
         res.end(method === 'HEAD' ? undefined : data);
         return;

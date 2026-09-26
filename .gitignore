@@ -12,3 +12,4 @@ cookies.txt
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+sites-game-v*.tar.gz
