@@ -18,3 +18,6 @@
 @media(max-width:680px){.game .choices{margin-top:20px}}
 
 html{scroll-padding-bottom:96px}button,summary,a{scroll-margin-bottom:88px}
+
+/* Home refinement: one primary entry, optional secondary content. */
+.home-secondary{margin-top:24px}.home-secondary>summary{min-height:56px}.hero-copy>.badge{justify-self:start}body[data-screen="home"] .home-hero .btn.primary{min-height:56px}@media(max-width:680px){body[data-screen="home"] .page-head .eyebrow{display:none}body[data-screen="home"] .home-hero{padding:24px}body[data-screen="home"] .hero-copy h2{font-size:28px}body[data-screen="home"] .hero-copy>small{font-size:13px}.home-secondary{margin-top:20px}}

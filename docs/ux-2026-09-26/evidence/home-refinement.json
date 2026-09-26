@@ -1,0 +1,34 @@
+[
+  {
+    "width": 320,
+    "overflow": false,
+    "ctaBottom": 465.765625,
+    "ctaHeight": 56,
+    "secondaryClosed": true,
+    "primaryCount": 1
+  },
+  {
+    "width": 390,
+    "overflow": false,
+    "ctaBottom": 412.203125,
+    "ctaHeight": 56,
+    "secondaryClosed": true,
+    "primaryCount": 1
+  },
+  {
+    "width": 768,
+    "overflow": false,
+    "ctaBottom": 477.859375,
+    "ctaHeight": 56,
+    "secondaryClosed": true,
+    "primaryCount": 1
+  },
+  {
+    "width": 1440,
+    "overflow": false,
+    "ctaBottom": 510.71875,
+    "ctaHeight": 56,
+    "secondaryClosed": true,
+    "primaryCount": 1
+  }
+]
