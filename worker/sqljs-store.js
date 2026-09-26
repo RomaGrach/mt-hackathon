@@ -10,6 +10,9 @@ export class SqlJsStore {
     if (version > 2) throw new Error('Unsupported schema version: ' + version);
     this.db.exec('PRAGMA foreign_keys=ON');
     this.db.exec(
+      'CREATE TABLE IF NOT EXISTS runtime_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)'
+    );
+    this.db.exec(
       [...BASE_STATEMENTS, ...(version === 0 ? ['PRAGMA user_version=1'] : [])].join(';')
     );
     if (version < 2) this.transaction(() => migrateV2(this.db));
@@ -70,6 +73,9 @@ export class SqlJsStore {
     return JSON.parse(
       this.get('SELECT document FROM scenarios WHERE id=? AND version=?', id, version).document
     );
+  }
+  hasChanges() {
+    return (this.db.exec('SELECT total_changes()')[0]?.values[0][0] || 0) > 0;
   }
   export() {
     return this.db.export();

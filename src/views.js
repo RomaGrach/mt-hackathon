@@ -1,6 +1,6 @@
 import { adminView } from './admin-view.js';
 import * as ux from './ux.js';
-import { renderShift } from './shift-view.js';
+import { renderShift, sheet } from './shift-view.js';
 import { motivationProfile, motivationLeaders, shiftResultControls } from './motivation-view.js';
 export const esc = (s) =>
   String(s ?? '').replace(
@@ -110,7 +110,8 @@ function profile(model) {
   return (
     motivationProfile(model) +
     '<div class="reading-column">' +
-    settings +
+    '<button class="learn-entry" data-open-sheet="settings">⚙ Настройки профиля →</button>' +
+    sheet('settings', 'Настройки профиля', settings) +
     '<details class="panel" data-disclosure="legacy-profile"><summary>История, баллы и достижения отдельных сценариев v1</summary><p>Архивная система не прибавляется к XP и СП новой смены.</p>' +
     legacy.replaceAll('<h1', '<h2').replaceAll('</h1>', '</h2>') +
     '</details></div>'

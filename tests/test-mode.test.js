@@ -99,3 +99,44 @@ test('public test admin: anonymous read, pagination, no session secrets and no w
     405
   );
 });
+
+test('screen UI retains every visible task and all offered actions across a full shift', async () => {
+  const { renderShift } = await import('../src/shift-view.js');
+  const h = elapsed();
+  try {
+    h.start();
+    const verify = () => {
+      const html = renderShift(h.run, { embedded: true });
+      for (const task of h.run.tasks) assert.ok(html.includes(task.label), task.id);
+      h.run.actions.forEach((a, i) =>
+        assert.ok(html.includes(`data-shift-action="${i}"`), a.label)
+      );
+      assert.ok(html.includes('Задачи смены'));
+      assert.ok(!html.includes('Обещания'));
+    };
+    verify();
+    h.act('begin');
+    verify();
+    h.work('inspect-predeparture', null);
+    verify();
+    h.work('acknowledge-and-promise');
+    verify();
+    h.act('continue');
+    h.act('inspect');
+    verify();
+    h.work('clear-aisle', 'b-aisle');
+    verify();
+    h.work('verify-and-request');
+    verify();
+    h.act('continue');
+    h.act('wait');
+    h.act('continue');
+    h.act('wait');
+    h.work('confirm-and-return-p1');
+    verify();
+    h.finish();
+    verify();
+  } finally {
+    h.store.close();
+  }
+});

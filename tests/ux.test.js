@@ -304,3 +304,36 @@ test('transport does not automatically retry unkeyed session creation', async ()
     globalThis.fetch = original;
   }
 });
+
+test('v2 fresh action uses its authoritative response without a redundant GET', async () => {
+  const calls = [];
+  const run = { id: 'run-1', schemaVersion: 2, revision: 1 };
+  const client = new ShiftClient({
+    storage: memory(),
+    makeId: () => 'fresh-key',
+    transport: async (path, options) => {
+      calls.push({ path, method: options?.method });
+      return { run };
+    },
+  });
+  client.run = { id: 'run-1', schemaVersion: 2, revision: 0 };
+  assert.deepEqual(await client.send({ command: 'begin' }), run);
+  assert.deepEqual(calls, [{ path: '/v2/runs/run-1/commands', method: 'POST' }]);
+});
+
+test('v2 internally retried response still reconciles the latest server revision', async () => {
+  const calls = [];
+  const receipt = { run: { id: 'run-1', schemaVersion: 2, revision: 1 }, __retried: true };
+  const latest = { id: 'run-1', schemaVersion: 2, revision: 2 };
+  const client = new ShiftClient({
+    storage: memory(),
+    makeId: () => 'retry-key',
+    transport: async (path, options) => {
+      calls.push(options?.method || 'GET');
+      return options?.method === 'POST' ? receipt : latest;
+    },
+  });
+  client.run = { id: 'run-1', schemaVersion: 2, revision: 0 };
+  assert.deepEqual(await client.send({ command: 'begin' }), latest);
+  assert.deepEqual(calls, ['POST', 'GET']);
+});

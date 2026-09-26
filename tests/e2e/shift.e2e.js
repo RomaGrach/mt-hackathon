@@ -48,7 +48,8 @@ async function action(page, type, id) {
   );
   expect(index, 'offered action ' + type + ' ' + id).toBeGreaterThanOrEqual(0);
   const b = page.locator('[data-shift-action="' + index + '"]');
-  if (!(await b.isVisible())) await page.locator('[data-disclosure=tools] > summary').click();
+  if (!(await b.isVisible()))
+    await page.locator('[data-open-sheet=' + (type === 'focus' ? 'map' : 'tools') + ']').click();
   await b.click();
   await idle(page);
   return state(page);
@@ -272,6 +273,7 @@ test('v2 другой класс/вариант, untimed, цель и практ
   page.once('dialog', (d) => d.accept());
   await action(page, 'abort');
   await nav(page, 'profile');
+  await page.locator('[data-open-sheet=goal]').click();
   await page.locator('#goal-days').selectOption('1');
   await page.locator('input[name=paused]').check();
   await page.locator('#motivation-preferences button').click();

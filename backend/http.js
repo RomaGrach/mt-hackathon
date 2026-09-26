@@ -104,6 +104,7 @@ export function createApp({
   sessionLimit = 15,
   sweep = true,
   clockMode = 'elapsed',
+  backfillLegacy = true,
 } = {}) {
   if (integrationKey && integrationKey.length < 32)
     throw new Error('HR_API_KEY должен содержать минимум 32 символа');
@@ -114,7 +115,7 @@ export function createApp({
     (!secureCookie || !publicOrigin.startsWith('https://'))
   )
     throw new Error('Production требует HTTPS PUBLIC_ORIGIN и COOKIE_SECURE=true');
-  const service = new Service(store, { clock, clockMode });
+  const service = new Service(store, { clock, clockMode, backfillLegacy });
   const requests = new Limiter(rateLimit, 60000);
   const registrations = new Limiter(sessionLimit, 3600000);
   const send = (res, status, value) => {

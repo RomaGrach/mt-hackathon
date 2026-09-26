@@ -60,6 +60,7 @@ function paint(focus = false) {
           checked: el.checked,
         }))
       : [];
+  app.classList.toggle('game-active', model.view === 'run' && model.run?.schemaVersion === 2);
   app.innerHTML = render(model);
   for (const field of fields) {
     const el = document.getElementById(field.id);
@@ -277,9 +278,10 @@ async function loadAdmin(offset = 0) {
   model.admin = await api('/admin/users?offset=' + offset);
 }
 async function navigate(view) {
+  document.querySelectorAll('dialog[open]').forEach((d) => d.close());
   model.view = view;
   if (view === 'admin') return loadAdmin();
-  await reloadBoot();
+  if (!model.boot) await reloadBoot();
   if (view === 'leaderboard') await loadRankings();
 }
 async function loadRankings() {
@@ -305,8 +307,8 @@ async function startShift(options = {}) {
   );
   model.view = 'run';
   model.auditMessage = null;
-  await reloadBoot();
 }
+
 async function choose(id) {
   const r = model.run;
   if (!r || r.phase !== 'decision') return;
@@ -314,6 +316,17 @@ async function choose(id) {
 }
 
 app.addEventListener('click', (event) => {
+  const openSheet = event.target.closest('[data-open-sheet]');
+  if (openSheet) {
+    document.getElementById('sheet-' + openSheet.dataset.openSheet)?.showModal();
+    return;
+  }
+  const closeSheet = event.target.closest('[data-close-sheet]');
+  if (closeSheet) {
+    closeSheet.closest('dialog')?.close();
+    return;
+  }
+
   const element = event.target.closest('[data-action],[data-shift-action]');
   if (
     !element ||

@@ -67,11 +67,23 @@ function actionButton(a, i) {
   };
   return `<button type="button" class="${['choose', 'begin', 'continue', 'resume', 'finish'].includes(a.command) ? 'option' : 'outline-button'}" data-shift-action="${i}" ${a.command === 'focus' ? `data-focus-incident="${esc(a.incidentId)}"` : ''} ${a.available === false ? 'disabled aria-disabled="true"' : ''}><span class="action-icon" aria-hidden="true">${icons[a.command] || '→'}</span><span class="option-copy"><strong>${esc(a.label)}</strong>${a.unavailableReason ? `<small>${esc(a.unavailableReason)}</small>` : ''}</span>${a.durationSeconds > 0 ? `<span class="action-duration">◷ ${durationLabel(a.durationSeconds)}</span>` : ''}</button>`;
 }
+export function shiftHud(run) {
+  const meter = (key, label) =>
+    `<div class="compact-meter ${key}" aria-label="${label}: ${run.scales?.[key] ?? 0} из 100"><span>${label} <b>${run.scales?.[key] ?? 0}</b></span><progress max="100" value="${run.scales?.[key] ?? 0}"></progress></div>`;
+  const w = run.criticalWindow;
+  return `<div class="game-clock"><small>Время смены</small><time>${clockLabel(run.simulationSeconds ?? run.step * 30)}</time></div><div class="compact-meters">${meter('loyalty', 'Лояльность')}${meter('safety', 'Безопасность')}</div>${w?.status === 'open' ? `<div class="urgent-clock" aria-label="Время срочного решения"><span id="shift-seconds">${w.deadline == null ? '∞' : Math.ceil(Math.max(0, w.deadline - run.serverNow) / 1000)}</span> с<span id="shift-time-message" class="sr-only" aria-live="polite"></span></div>` : ''}`;
+}
 function tasks(run) {
-  const active = (run.tasks || []).filter(
-    (t) => t.type === 'promise' && !['completed', 'cancelled', 'failed'].includes(t.status)
-  );
-  return `<section class="promise-list" aria-label="Обещания"><h3>◷ Обещания <small>${active.length}</small></h3>${active.length ? active.map((t) => `<div class="promise ${t.overdue ? 'overdue' : ''}"><strong>${esc(t.label)}</strong><small>${t.overdue ? 'Срок пропущен · вернитесь к пассажиру' : t.dueSeconds != null ? `До ${clockLabel(t.dueSeconds)} · осталось ${durationLabel(Math.max(0, t.dueSeconds - run.simulationSeconds))}` : 'Завершите в этой смене'}</small></div>`).join('') : '<p class="muted">Нет открытых обещаний</p>'}</section>`;
+  const all = run.tasks || [];
+  const active = all.filter((t) => !['completed', 'cancelled'].includes(t.status));
+  const done = all.filter((t) => ['completed', 'cancelled'].includes(t.status));
+  const row = (t) =>
+    `<article class="task-row ${t.overdue ? 'overdue' : ''}"><span class="task-check">${t.status === 'completed' ? '✓' : t.overdue ? '!' : '○'}</span><div><strong>${esc(t.label)}</strong><small>${esc(statuses[t.status] || t.status)}${t.overdue ? ' · срок прошёл' : t.dueSeconds != null ? ` · до ${clockLabel(t.dueSeconds)}` : ''}</small></div></article>`;
+  return `<p class="sheet-intro">${active.length} в работе · ${done.length} завершено. Задачи появляются после приёмки, осмотра и ваших действий.</p>${active.map(row).join('') || '<p>Все известные задачи выполнены.</p>'}${done.length ? `<details><summary>Завершённые · ${done.length}</summary>${done.map(row).join('')}</details>` : ''}`;
+}
+export const tutorialContent = `<div class="tutorial-steps"><article><b>1</b><div><h3>Прочитайте ситуацию</h3><p>Вверху — где вы находитесь и что происходит. Варианты действий находятся под текстом.</p></div></article><article><b>2</b><div><h3>Выберите действие</h3><p>Длительность указана на кнопке. Чтение, карта и список задач не тратят игровое время.</p></div></article><article><b>3</b><div><h3>Проверяйте вагон и задачи</h3><p>Карта помогает перейти к известному делу. Осмотр открывает новые обстоятельства. В задачах видны адресат, срок и состояние.</p></div></article><article><b>4</b><div><h3>Следите за срочным таймером</h3><p>Он идёт в реальном времени, даже при открытой карте. Учебная пауза доступна через «Ещё».</p></div></article><article><b>5</b><div><h3>Завершите смену</h3><p>Выполните дела, откройте разбор решений и сохраните опыт. Повторная практика доступна с главной.</p></div></article></div>`;
+export function sheet(id, title, content) {
+  return `<dialog class="game-sheet" id="sheet-${id}" aria-labelledby="sheet-title-${id}"><header><h2 id="sheet-title-${id}">${title}</h2><button class="sheet-close" data-close-sheet aria-label="Закрыть">×</button></header><div class="sheet-body">${content}</div></dialog>`;
 }
 export function renderShift(run, { prototype = false, embedded = false } = {}) {
   if (prototype) return renderPrototype(run, { prototype, embedded });
@@ -96,10 +108,7 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
       .join('');
   const w = run.criticalWindow;
   const urgent = w?.status === 'open';
-  const countdown = urgent
-    ? `<div class="hud-clock urgent"><small>Срочное решение</small><strong><span id="shift-seconds">${w.deadline == null ? '∞' : Math.ceil(Math.max(0, w.deadline - run.serverNow) / 1000)}</span> с</strong><span id="shift-time-message" class="sr-only" aria-live="polite"></span></div>`
-    : '';
-  const hud = `<header class="shift-hud"><div class="hud-clock"><small>Время смены</small><strong>${clockLabel(run.simulationSeconds ?? run.step * 30)}</strong></div><div class="hud-metric loyalty"><small>♥ Лояльность</small><strong>${run.scales?.loyalty ?? 0}<span>/100</span></strong></div><div class="hud-metric safety"><small>◈ Безопасность</small><strong>${run.scales?.safety ?? 0}<span>/100</span></strong></div>${countdown}<span class="hud-class">Вагон 3 · ${esc(run.context?.serviceClassLabel)}</span></header>`;
+  const hud = embedded ? '' : `<header class="app-header game-header">${shiftHud(run)}</header>`;
   const cases = (run.incidents || [])
     .map((item, index) => {
       const at = actions.findIndex((a) => a.command === 'focus' && a.incidentId === item.id);
@@ -111,12 +120,11 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
         : `<div class="case-tab ${current ? 'selected' : ''}">${inside}</div>`;
     })
     .join('');
-  const rail = `<aside class="shift-rail"><h2>Ситуации в вагоне</h2>${cases || '<div class="case-tab selected"><span class="case-number">✓</span><span><strong>Приёмка вагона</strong><small>Подготовка к смене</small></span></div>'}${run.stage === 'service' && run.incidents?.length < 2 ? '<div class="case-tab unknown"><span class="case-number">⌕</span><span><strong>Салон не осмотрен</strong><small>Осмотр откроет новые обстоятельства</small></span></div>' : ''}${tasks(run)}</aside>`;
   let body = '';
   const mainActions = () =>
     `<div class="shift-actions">${buttons(['choose', 'inspect', 'wait', 'begin', 'continue', 'resume', 'finish'])}</div>`;
   if (run.phase === 'briefing')
-    body = `${heading('Начало смены', 'Вагон готов к приёмке', 'Проверьте вагон, разберитесь с обращениями и выполните обещания.')}<div class="scene-card"><p>Часы начинаются с 08:00. Рабочие действия продвигают время на указанную длительность. Чтение и переходы времени не требуют.</p><p>В срочных ситуациях появится отдельный таймер реального времени.</p></div>${mainActions()}`;
+    body = `${heading('Начало смены', 'Вагон готов к приёмке', 'Проверьте вагон, разберитесь с обращениями и выполните задачи.')}<div class="scene-card"><p>Часы начинаются с 08:00. Рабочие действия продвигают время на указанную длительность. Чтение и переходы времени не требуют.</p><p>В срочных ситуациях появится отдельный таймер реального времени.</p></div>${mainActions()}`;
   if (['inspection', 'scene'].includes(run.phase))
     body = `${heading(run.stage === 'inspection' ? 'Приёмка' : 'Ситуация · ' + (run.incidents?.find((i) => i.id === run.focusIncidentId)?.label || 'Вагон 3'), run.scene?.title || 'Текущее дело')}<div class="scene-card"><p class="speaker">${esc(run.scene?.speaker || 'Наблюдение')}</p><p class="observation">${esc(run.scene?.text)}</p></div><h2 class="decision-label">${esc(run.scene?.prompt || 'Ваше действие')}</h2>${mainActions()}`;
   if (run.phase === 'overview')
@@ -132,7 +140,30 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
   body += rest ? `<div class="shift-actions">${rest}</div>` : '';
   if (run.mode === 'training' && run.hintText && ['scene', 'paused'].includes(run.phase))
     body += `<aside class="hint-card">${esc(run.hintText)}</aside>`;
-  body += `<footer class="shift-tools">${tools}<span>Чтение и переходы · 0 с</span></footer>`;
+  const current = run.incidents?.find((i) => i.id === run.focusIncidentId);
+  const location =
+    run.stage === 'inspection' ? 'Тамбур · приёмка' : current?.label || 'Обзор вагона';
+  const map = `<p class="sheet-intro">Вагон 3 · ${esc(location)}</p><div class="wagon-map"><div class="wagon-end">Тамбур · приёмка</div><div class="zone-card">Места 18–19</div><div class="wagon-aisle">Проход</div><div class="zone-card">Салон</div><div class="wagon-end">Условная схема зон · не план мест</div></div><h3>Известные ситуации</h3>${cases || '<p>После приёмки станут доступны обращения.</p>'}${run.stage === 'service' && run.incidents?.length < 2 ? '<p class="muted">Салон ещё не осмотрен. Новые обстоятельства появятся после осмотра.</p>' : ''}`;
+  const count = (run.tasks || []).filter(
+    (t) => !['completed', 'cancelled'].includes(t.status)
+  ).length;
+  body = `<p class="location-tag">◉ Вагон 3 · ${esc(location)}</p>` + body;
+  const sheets =
+    sheet('tasks', 'Задачи смены', tasks(run)) +
+    sheet('map', 'Карта вагона', map) +
+    sheet('help', 'Как играть', tutorialContent) +
+    sheet(
+      'tools',
+      'Управление сменой',
+      `<div class="shift-actions">${tools}</div><button data-action="nav" data-view="home">⌂ На главную</button><p>Чтение и переходы · 0 с. Срочный таймер продолжает идти, пока не включена учебная пауза.</p>`
+    );
+  const dock = `<nav class="game-dock" aria-label="Панели смены"><button data-open-sheet="map"><span>▦</span>Вагон</button><button data-open-sheet="tasks"><span>☑ <b>${count}</b></span>Задачи</button><button data-open-sheet="help"><span>?</span>Обучение</button><button data-open-sheet="tools"><span>•••</span>Ещё</button></nav>`;
+  // Keep choices anchored while only the long narrative scrolls on small displays.
+  const actionAt = body.indexOf('<div class="shift-actions">');
+  if (actionAt >= 0 && run.phase !== 'result') {
+    const end = body.indexOf('</div>', actionAt) + 6;
+    body = `<div class="scene-content">${body.slice(0, actionAt)}${body.slice(end)}</div>${body.slice(actionAt, end)}`;
+  }
   const tag = embedded ? 'section' : 'main';
-  return `<${tag} ${embedded ? '' : 'id="main"'} class="shift-console" data-phase="${esc(run.phase)}">${hud}<div class="shift-grid">${rail}<div class="shift-stage">${body}</div></div></${tag}>`;
+  return `<${tag} ${embedded ? '' : 'id="main"'} class="shift-console" data-phase="${esc(run.phase)}">${hud}<div class="shift-stage">${body.replaceAll('в списке обещаний', 'в списке задач')}</div>${dock}${sheets}</${tag}>`;
 }

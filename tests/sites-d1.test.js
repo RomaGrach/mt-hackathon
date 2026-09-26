@@ -79,3 +79,24 @@ test('Sites SQL adapter retains a session, ShiftRun, deadline and receipt after 
   assert.equal(repeat.status, 201);
   assert.deepEqual(repeat.body, run.body);
 });
+
+test('Sites snapshot read-only request has no data writes after bootstrap', async () => {
+  const { Service } = await import('../backend/service.js');
+  const { adminUsers } = await import('../backend/admin.js');
+  const SQL = await initSqlJs();
+  const first = new SqlJsStore(SQL);
+  new Service(first);
+  first.run("INSERT INTO runtime_metadata VALUES('legacy_awards_backfilled','1')");
+  const image = first.export();
+  first.close();
+  const reloaded = new SqlJsStore(SQL, image);
+  try {
+    new Service(reloaded, { backfillLegacy: false });
+    adminUsers(reloaded, new URLSearchParams());
+    assert.equal(reloaded.hasChanges(), false);
+    reloaded.run("INSERT INTO runtime_metadata VALUES('test-write','1')");
+    assert.equal(reloaded.hasChanges(), true);
+  } finally {
+    reloaded.close();
+  }
+});

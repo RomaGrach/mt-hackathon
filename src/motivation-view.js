@@ -1,3 +1,4 @@
+import { sheet, tutorialContent } from './shift-view.js';
 import { esc, button, heading } from './ui.js';
 const when = (value) =>
   new Date(value).toLocaleDateString('ru-RU', {
@@ -105,7 +106,7 @@ export function shiftHome(model) {
     main =
       '<section class="next-session"><h2>' +
       esc(c.title) +
-      '</h2><p>Проверьте готовность вагона, работайте с обращениями, замечайте изменения и возвращайтесь к обещанному.</p><form id="shift-start-form"><button class="primary-button" type="submit">Начать смену</button><details class="panel" data-disclosure="shift-options"><summary>Класс, время и режим</summary><div class="settings-stack">' +
+      '</h2><p>Проверьте готовность вагона, работайте с обращениями, замечайте изменения и выполняйте задачи смены.</p><form id="shift-start-form"><button class="primary-button" type="submit">Начать смену</button><details class="panel" data-disclosure="shift-options"><summary>Класс, время и режим</summary><div class="settings-stack">' +
       select('shift-class', 'serviceClass', 'Класс обслуживания', c.classes, 'standard') +
       select(
         'shift-time',
@@ -142,8 +143,10 @@ export function shiftHome(model) {
       : m.goal.days.length + ' из ' + m.goal.target + ' учебных дней';
   return (
     '<div class="reading-column">' +
-    heading('Тренажёр проводника', 'Ваша смена') +
+    `<section class="player-card"><div class="player-avatar">Р</div><div><p class="eyebrow">Личный кабинет</p><h1 tabindex="-1">${esc(b.profile.name || 'Проводник')}</h1><p>Уровень ${m.practiceLevel} · ${m.lifetimePracticeXP} XP · ${esc(b.crews?.find((c) => c.id === b.profile.crew)?.name || b.profile.crew)}</p></div><button data-action="nav" data-view="profile" aria-label="Открыть профиль">→</button></section><div class="home-route"><span>МОСКВА</span><span class="route-train">▰▰▰</span><span>ПЕТЕРБУРГ</span></div>` +
     main +
+    '<button class="learn-entry" data-open-sheet="help">? Как играть · короткое обучение →</button>' +
+    sheet('help', 'Как играть', tutorialContent) +
     '<section class="panel"><h2>Ваш ритм</h2><p>' +
     goal +
     ' за неделю · ' +
@@ -172,7 +175,7 @@ export function shiftHome(model) {
         '</details>'
       : '') +
     (!active && c ? participation(m) : '') +
-    '<details class="panel catalog-disclosure" data-disclosure="catalog"><summary>Отдельные учебные сценарии v1</summary><p>Предыдущие модули сохранены. Их старые баллы не смешиваются с XP и недельными СП новой смены.</p><div class="scenario-grid">' +
+    '<details class="panel catalog-disclosure" data-disclosure="catalog"><summary>Все учебные сценарии</summary><p>Пять самостоятельных историй с вариантами решений и полным разбором. Баллы модулей учитываются отдельно от XP смены.</p><div class="scenario-grid">' +
     b.catalog
       .map(
         (s) =>
@@ -195,9 +198,13 @@ function evidenceGroup(group) {
     ' · ' +
     esc(times[group.timingPolicy.id]) +
     '</h3><p class="timing-note">' +
-    esc(group.variantId) +
+    esc(group.variantId === 'blocked-aisle' ? 'Размещение и проход' : 'Сервисная ситуация') +
     ' · ' +
-    esc(group.servicePolicyId) +
+    esc(
+      { standard: 'Стандарт', comfort: 'Комфорт', business: 'Бизнес', first: 'Первый' }[
+        group.servicePolicyId?.split('-')[0]
+      ] || 'Выбранный класс'
+    ) +
     ' · последнее прохождение этих условий.</p><div class="criterion-list">' +
     group.criteria
       .map(
@@ -216,11 +223,7 @@ function evidenceGroup(group) {
 }
 export function motivationProfile(model) {
   const m = model.boot.motivation;
-  const recent = m.evidence[0];
-  return (
-    '<div class="reading-column">' +
-    heading('Навыки и профиль', 'Ваша практика', model.boot.profile.name) +
-    scoreSummary(m) +
+  const goal =
     '<section class="panel"><h2>Личная цель</h2><p>' +
     (m.goal.paused
       ? 'Пауза — без потери накопленного прогресса.'
@@ -239,17 +242,8 @@ export function motivationProfile(model) {
     (m.preferences.paused ? 'checked' : '') +
     '> Пауза цели и автоматических напоминаний</label><label class="check-label"><input type="checkbox" name="automaticNotices" ' +
     (m.preferences.automaticNotices ? 'checked' : '') +
-    '> Показывать редкие напоминания внутри приложения</label><p class="timing-note">После первого учебного дня снижение цели применяется со следующей недели. Эта настройка не останавливает таймер смены.</p><button class="outline-button" type="submit">Сохранить цель</button></form></section>' +
-    '<section class="panel"><h2>Как начисляется опыт</h2><p>Разбор полного завершённого прохождения — до 20 XP за семейство в неделю; тренировка от развилки — 10 XP с возможностью добрать до 20 за полный разбор. Ошибки не обнуляют полезную практику.</p><p>Сейчас опубликовано одно семейство: максимум 20 XP в неделю. Повторное чтение, прерванная попытка и точное воспроизведение истории новых XP не дают.</p></section>' +
-    '<h2>Наблюдения по навыкам</h2>' +
-    (recent
-      ? evidenceGroup(recent)
-      : '<section class="panel"><p>Пока нет завершённых смен. Здесь появятся выполненные и пропущенные критерии, а не предположение о ваших способностях.</p></section>') +
-    (m.evidence.length > 1
-      ? '<details class="panel" data-disclosure="other-evidence"><summary>Другие условия прохождения</summary>' +
-        m.evidence.slice(1).map(evidenceGroup).join('') +
-        '</details>'
-      : '') +
+    '> Показывать редкие напоминания внутри приложения</label><p class="timing-note">После первого учебного дня снижение цели применяется со следующей недели. Эта настройка не останавливает таймер смены.</p><button class="outline-button" type="submit">Сохранить цель</button></form></section>';
+  const history =
     '<section class="panel"><h2>История смен</h2>' +
     (m.history.length
       ? m.history
@@ -272,7 +266,8 @@ export function motivationProfile(model) {
           )
           .join('')
       : '<p>Начните первую смену — она доступна без набора предварительных очков.</p>') +
-    '</section>' +
+    '</section>';
+  const awards =
     '<section class="panel"><h2>Достижения</h2>' +
     m.awardRules
       .map(
@@ -288,19 +283,20 @@ export function motivationProfile(model) {
           '</small></div></div>'
       )
       .join('') +
-    '</section>' +
-    (m.archives.length
-      ? '<details class="panel" data-disclosure="archives"><summary>Завершённые недели</summary>' +
-        m.archives
-          .map(
-            (p) =>
-              '<p>' + esc(p.period_id) + ' · ' + p.score + ' СП · ' + esc(bands[p.band]) + '</p>'
-          )
-          .join('') +
-        '<p>Это сохранённые итоги, не действующие сезонные очки.</p></details>'
-      : '') +
-    '</div>'
-  );
+    '</section>';
+  const evidence = m.evidence.length
+    ? m.evidence.map(evidenceGroup).join('')
+    : '<p>После первой смены здесь появятся наблюдения по навыкам.</p>';
+  const archives = m.archives
+    .map((p) => `<p>${esc(p.period_id)} · ${p.score} СП · ${esc(bands[p.band])}</p>`)
+    .join('');
+  const tiles = [
+    ['skills', '◈', 'Навыки'],
+    ['history', '◷', 'История смен'],
+    ['awards', '★', 'Достижения'],
+    ['goal', '◎', 'Личная цель'],
+  ];
+  return `<div class="reading-column">${heading('Навыки и профиль', 'Ваша практика', model.boot.profile.name)}${scoreSummary(m)}<div class="profile-tiles">${tiles.map(([id, icon, label]) => `<button data-open-sheet="${id}"><span>${icon}</span>${label}</button>`).join('')}</div>${sheet('skills', 'Наблюдения по навыкам', evidence)}${sheet('history', 'История смен', history + (archives ? '<h3>Завершённые недели</h3>' + archives : ''))}${sheet('awards', 'Достижения', awards)}${sheet('goal', 'Личная цель', goal)}<details class="panel"><summary>Как начисляется опыт</summary><p>Полная смена и разбор — до 20 XP за семейство в неделю. Практика от развилки — 10 XP с возможностью добрать до 20. Повторный разбор и прерванная смена не дают новых XP.</p><p>Практика без ограничения запусков. XP и учебные свидетельства не означают профессиональную квалификацию.</p></details></div>`;
 }
 export function motivationLeaders(model) {
   const x = model.motivationLeaders,
@@ -415,14 +411,14 @@ export function shiftResultControls(run) {
   if (!r) return '';
   const options = r.history
     .filter((h) => h.replayable)
-    .map((h) => ({ id: String(h.eventSeq), label: 'Шаг ' + h.step + ': ' + h.title }));
+    .map((h) => ({ id: String(h.eventSeq), label: 'Решение ' + h.step + ': ' + h.title }));
   const receipt = run.debrief?.receipt;
   return (
     '<section class="reading-column result-followup"><section class="panel"><h2>Учебный результат</h2><p>' +
     r.episodePoints +
     ' из ' +
     r.possibleEpisodePoints +
-    ' баллов этого эпизода. Это не XP и не сезонные очки.</p><div class="criterion-list">' +
+    ' баллов этого эпизода. Это не XP и не сезонные очки.</p><details><summary>Все критерии результата</summary><div class="criterion-list">' +
     r.criteria
       .map(
         (c) =>
@@ -433,7 +429,7 @@ export function shiftResultControls(run) {
           '</span></div>'
       )
       .join('') +
-    '</div><p>' +
+    '</div></details><p>' +
     (r.rankingEligible
       ? r.seasonPoints + ' СП за эту попытку. В итог недели входит лучший результат, а не сумма.'
       : 'В рейтинг эта попытка не добавляет СП.') +
