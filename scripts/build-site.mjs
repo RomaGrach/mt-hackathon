@@ -3,7 +3,21 @@ import { resolve } from 'node:path';
 const output = resolve('dist');
 await rm(output, { recursive: true, force: true });
 await mkdir(resolve(output, 'src'), { recursive: true });
-for (const file of ['index.html', 'styles.css', 'src/app.js', 'src/api.js', 'src/views.js'])
+for (const file of [
+  'index.html',
+  'preview.html',
+  'styles.css',
+  'src/app.js',
+  'src/api.js',
+  'src/views.js',
+  'src/ui.js',
+  'src/ux.js',
+  'src/recovery.js',
+  'src/shift-view.js',
+  'src/shift-client.js',
+  'src/preview-state.js',
+  'src/preview-app.js',
+])
   await cp(resolve(file), resolve(output, file));
 await writeFile(
   resolve(output, 'README.md'),

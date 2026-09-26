@@ -37,6 +37,13 @@ async function join(page) {
   await expect(page.locator('.scenario-card')).toHaveCount(5);
 }
 async function start(page, id, practice = false) {
+  if (
+    !(await page
+      .locator('[data-action=brief][data-id=' + id + ']')
+      .first()
+      .isVisible())
+  )
+    await page.locator('[data-disclosure=catalog] > summary').click();
   await page
     .locator('[data-action="brief"][data-id="' + id + '"]')
     .first()
@@ -81,6 +88,11 @@ async function finish(page) {
   throw new Error('Scenario did not terminate');
 }
 async function nav(page, view) {
+  if (
+    !(await page.locator('.site-menu').getAttribute('open')) &&
+    !(await page.locator('.nav-item[data-view="' + view + '"]').isVisible())
+  )
+    await page.locator('.site-menu > summary').click();
   await page.locator('.nav-item[data-view="' + view + '"]').click();
   await idle(page);
 }
