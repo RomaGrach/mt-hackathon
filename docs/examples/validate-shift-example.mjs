@@ -35,12 +35,23 @@ check('references and independent incident states', () => {
     assert(['hidden', 'revealed'].includes(i.discovery));
   }
   assert.equal(s.incidents[s.focusIncidentId].discovery, 'revealed');
-  for (const c of Object.values(s.commitments)) {
-    assert(s.incidents[c.incidentId]);
-    assert(s.actors[c.actorId]);
-    assert(c.dueStep > s.step);
+  for (const t of Object.values(s.tasks)) {
+    assert(s.incidents[t.source.incidentId]);
+    assert(s.actors[t.source.actorId]);
+    assert(t.dueStep > s.step);
   }
-  assert.equal(s.commitments['return-p1'].actorId, 'p1');
+  assert.equal(s.tasks['return-p1'].source.actorId, 'p1');
+});
+check('promise is represented as a task, not a separate commitment', () => {
+  assert(!Object.prototype.hasOwnProperty.call(s, 'commitments'));
+  const task = s.tasks['return-p1'];
+  assert(task);
+  assert.equal(task.type, 'promise');
+  assert.equal(task.source.type, 'promise');
+  assert.equal(task.source.actorId, 'p1');
+  assert.equal(task.status, 'open');
+  assert(!Object.prototype.hasOwnProperty.call(p, 'commitments'));
+  assert(p.tasks.some((item) => item.id === 'return-p1' && item.type === 'promise'));
 });
 check('public checkpoint matches known world without hidden identifiers', () => {
   for (const key of ['id', 'revision', 'step', 'phase', 'stage', 'mode', 'status']) {
@@ -118,7 +129,7 @@ check('all four authored traces have consistent scale arithmetic and unique crit
     assert.equal(earned.size * 10, trace.expected.episodePoints);
     assert.deepEqual(errors, trace.expected.criticalErrors);
     const e = trace.expected;
-    const passed = errors.length === 0 && safety >= 65 && loyalty >= 55 && e.inspection === 'passed' && e.a === 'resolved' && e.b === 'resolved' && e.commitment === 'fulfilled';
+    const passed = errors.length === 0 && safety >= 65 && loyalty >= 55 && e.inspection === 'passed' && e.a === 'resolved' && e.b === 'resolved' && e.returnTask === 'completed';
     assert.equal(passed, e.passed);
   }
 });
@@ -129,15 +140,15 @@ check('handoff acknowledgment is not incident completion in any trace', () => {
     assert.equal(ack.aStatusAfter, 'waiting');
     const complete = trace.steps.find((row) => row.action === 'confirm-and-return-p1');
     assert(complete.step > ack.step);
-    assert(complete.step <= s.commitments['return-p1'].dueStep);
+    assert(complete.step <= s.tasks['return-p1'].dueStep);
     assert.equal(trace.expected.handoff, 'completed');
   }
 });
 check('early resolution and same-step return are represented by guard skips', () => {
   const good = fixture.traces.find((t) => t.id === 'early-discovery-success');
   assert(good.steps[3].automaticEvents.includes('b-escalate-skipped-terminal'));
-  assert(good.steps[6].automaticEvents.includes('return-due-skipped-fulfilled'));
-  assert.equal(good.steps[6].step, s.commitments['return-p1'].dueStep);
+  assert(good.steps[6].automaticEvents.includes('return-due-skipped-completed'));
+  assert.equal(good.steps[6].step, s.tasks['return-p1'].dueStep);
   const timeout = fixture.traces.find((t) => t.id === 'critical-timeout');
   assert.equal(timeout.steps.filter((r) => r.action === 'timeout').length, 1);
 });
