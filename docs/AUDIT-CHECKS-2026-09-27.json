@@ -1,0 +1,67 @@
+{
+  "date": "2026-09-27",
+  "upstreamSha": "ef7395693a96d046a99e8943d3ef3d4d0ee318b2",
+  "branch": "audit/content-criteria-20260927",
+  "environment": {
+    "platform": "win32",
+    "node": "v24.19.0",
+    "browserChannel": "msedge",
+    "physicalPhone": false
+  },
+  "content": {
+    "id": "design002",
+    "version": "1.0.2",
+    "hash": "bde673eee2985b7932b3d68ad029b5e392882975572bf5b171406666adc8df6e",
+    "baseProblems": 19,
+    "linkedProblems": 8,
+    "choices": 88,
+    "terminalChoices": 86,
+    "automaticOutcomes": 27,
+    "tasks": 17,
+    "archivedShift": "shift-content-3",
+    "archivedShiftHash": "67454b440221c23aea201fa97dd64de813f94a075669c019f7f6d46926874e14"
+  },
+  "checks": {
+    "unitServiceHttp": {
+      "tests": 169,
+      "passed": 169,
+      "failed": 0
+    },
+    "currentBrowserSmoke": {
+      "tests": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    "syntax": true,
+    "validators": true,
+    "sitesBuild": true,
+    "legacyCompletePaths": 335,
+    "oldFullBrowserAtInitialBase": {
+      "tests": 48,
+      "passed": 14,
+      "failed": 34,
+      "repeatedAfterDesign002": false
+    }
+  },
+  "notVerified": [
+    "live deployment and release SHA",
+    "human team understanding",
+    "carrier expert validation",
+    "full updated browser regression",
+    "real integrations",
+    "load capacity",
+    "full secrets/PII/history/archive review"
+  ],
+  "liveProbe": {
+    "method": "Node fetch, /api/health at README site",
+    "httpStatus": 403,
+    "providerPage": "Cloudflare",
+    "globalAvailabilityConclusion": false
+  },
+  "limitedKeyPatternScan": {
+    "scope": "tracked working-tree text <=2MB, four high-confidence key patterns; not Git history, binary documents, PII or exhaustive secret audit",
+    "scanned": 178,
+    "skipped": 32,
+    "findings": []
+  }
+}
