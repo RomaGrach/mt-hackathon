@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { isIP } from 'node:net';
 import { GameError } from './engine.js';
 import { Store } from './storage.js';
 import { Service } from './service.js';
@@ -36,6 +37,13 @@ const error = (code, message, status = 400) => {
   throw new GameError(code, message, status);
 };
 const digest = (s) => createHash('sha256').update(s).digest();
+const clientIp = (req) => {
+  const peer = req.socket.remoteAddress || 'unknown';
+  if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(peer)) return peer;
+  // nginx overwrites X-Real-IP; never trust a forwarded chain supplied by the browser.
+  const realIp = req.headers['x-real-ip'];
+  return typeof realIp === 'string' && isIP(realIp) ? realIp : peer;
+};
 const cookieValue = (req) =>
   (req.headers.cookie || '')
     .split(';')
@@ -105,7 +113,8 @@ export function createApp({
   publicOrigin = process.env.PUBLIC_ORIGIN || '',
   secureCookie = process.env.COOKIE_SECURE === 'true',
   rateLimit = 240,
-  sessionLimit = 15,
+  sessionLimit = 100,
+  globalSessionLimit = 1000,
   sweep = true,
   clockMode = 'elapsed',
   backfillLegacy = true,
@@ -123,6 +132,7 @@ export function createApp({
   const service = new Service(store, { clock, clockMode, backfillLegacy, publishContent });
   const requests = new Limiter(rateLimit, 60000);
   const registrations = new Limiter(sessionLimit, 3600000);
+  const globalRegistrations = new Limiter(globalSessionLimit, 3600000);
   const send = (res, status, value) => {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(value));
@@ -184,7 +194,7 @@ export function createApp({
         else error('NOT_FOUND', 'Ресурс не найден', 404);
         return;
       }
-      const client = req.socket.remoteAddress || 'unknown'; // Not persisted or logged.
+      const client = clientIp(req); // Not persisted or logged.
       requests.check(client, clock());
       if (pathname.startsWith('/api/integrations/')) {
         if (!integrationKey)
@@ -233,6 +243,7 @@ export function createApp({
           return;
         }
         registrations.check(client, clock());
+        globalRegistrations.check('all', clock());
         const session = service.createSession(body.crew);
         cookie(res, session.token, 7 * 86400);
         send(res, 201, service.bootstrap(session.profileId));

@@ -53,6 +53,27 @@ test('HTTP-сессия: HttpOnly/SameSite, профиль с сервера, н
     login.data.profile.id
   );
 });
+test('лимит новых профилей разделяет доверенные IP nginx и сохраняет общий предел', async (t) => {
+  const { request } = await fixture(t, { sessionLimit: 2, globalSessionLimit: 6 });
+  const register = (headers) => request('/api/session', { method: 'POST', body: {}, headers });
+  const first = { 'X-Real-IP': '198.51.100.11' };
+  const second = { 'X-Real-IP': '198.51.100.12' };
+  assert.equal((await register(first)).status, 201);
+  assert.equal((await register(first)).status, 201);
+  assert.equal((await register(first)).status, 429);
+  assert.equal((await register(second)).status, 201);
+  assert.equal((await register(second)).status, 201);
+  assert.equal((await register(second)).status, 429);
+  // The fixture's initial profile and four above count toward the sitewide limit.
+  assert.equal((await register({ 'X-Real-IP': '198.51.100.13' })).status, 201);
+  assert.equal((await register({ 'X-Real-IP': '198.51.100.14' })).status, 429);
+});
+test('клиентский X-Forwarded-For и некорректный X-Real-IP не обходят лимит', async (t) => {
+  const { request } = await fixture(t, { sessionLimit: 2 });
+  const register = (headers) => request('/api/session', { method: 'POST', body: {}, headers });
+  assert.equal((await register({ 'X-Forwarded-For': '198.51.100.21' })).status, 201);
+  assert.equal((await register({ 'X-Real-IP': '198.51.100.22, 198.51.100.23' })).status, 429);
+});
 test('HTTP полный сценарий, повтор отправки, refresh и отказ от поддельных points', async (t) => {
   const { request, cookie } = await fixture(t);
   const startBody = { scenarioId: 'service', practice: false, requestId: randomUUID() };
