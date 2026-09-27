@@ -427,6 +427,8 @@ function showTutorial() {
 }
 
 app.addEventListener('click', (event) => {
+  const openMenu = app.querySelector('.site-menu[open]');
+  if (openMenu && !event.target.closest('.site-menu')) openMenu.open = false;
   if (event.target.closest('[data-dismiss-confirm]')) {
     event.target.closest('.inline-confirmation')?.remove();
     return;
@@ -525,6 +527,13 @@ app.addEventListener('click', (event) => {
     return;
   }
   perform(async () => {
+    if (action === 'course-start')
+      return startShift({
+        mode: 'training',
+        timingPolicyId: 'standard',
+        serviceClass: 'standard',
+        ...(element.dataset.variant ? { variantId: element.dataset.variant } : {}),
+      });
     if (action === 'tutorial-start') {
       const active = model.run?.phase !== 'result' ? model.run : null;
       const id = active?.id || model.boot.activeRun?.id;
@@ -700,7 +709,7 @@ await perform(async () => {
   const id = initialHash.match(/^#run\/([a-f0-9-]{36})$/)?.[1];
   if (id) return openRun(id);
   const view = initialHash.slice(1);
-  if (['profile', 'leaderboard', 'notices', 'admin'].includes(view)) return navigate(view);
+  if (['landing', 'profile', 'leaderboard', 'notices', 'admin'].includes(view)) return navigate(view);
 });
 
 // State refresh is event-driven; the local countdown never polls the API.
