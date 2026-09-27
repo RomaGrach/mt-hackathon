@@ -92,7 +92,12 @@ test('enriched journal survives reload and exact replay', (t) => {
   t.after(() => h.store.close());
   h.start({ scenarioId: 'design002', variantId: 'orientation', timingPolicyId: 'extended' });
   h.act('begin');
-  const focus = h.run.actions.find((a) => a.command === 'focus');
+  let focus = h.run.actions.find((a) => a.command === 'focus');
+  for (let tries = 0; !focus && !h.run.result && tries < 8; tries++) {
+    h.act(h.run.actions.some((a) => a.command === 'continue') ? 'continue' : 'inspect');
+    focus = h.run.actions.find((a) => a.command === 'focus');
+  }
+  assert.ok(focus, 'A known or discovered incident must become available');
   h.act('focus', focus.incidentId);
   h.act('abort');
   assert.equal(h.v2.exactReplay(h.profile, h.run.id).verified, true);

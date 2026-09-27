@@ -118,6 +118,16 @@ function addTask(s, c, id, source, now, cause) {
     parentId: source.id,
     status: 'open',
     createdTurn: s.step,
+    ...(s.taskLifetimeVersion === 1
+      ? {
+          expiresTurn:
+            s.step +
+            c.tasks[id].ttl +
+            (source.status === 'completed' || ['choice', 'timeout'].includes(source.resolution)
+              ? 1
+              : 0),
+        }
+      : {}),
     causeEventId: cause,
   };
   s.tasks.push(t);
@@ -225,7 +235,7 @@ function outcome(s, c, p, o, now, reason = 'choice', spawn = true) {
     s.phase = 'overview';
   }
 }
-function taskOutcome(s, c, t, now, success, spawn = true) {
+function taskOutcome(s, c, t, now, success, spawn = true, reason = null) {
   const d = c.tasks[t.templateId],
     o = success ? d.success : d.worst;
   t.status = success ? 'completed' : 'failed';
@@ -236,6 +246,9 @@ function taskOutcome(s, c, t, now, success, spawn = true) {
     seat: t.seat,
     impact,
     causeEventId: t.causeEventId,
+    ...(s.taskLifetimeVersion === 1
+      ? { reason: reason || (success ? 'completed' : 'shift_end') }
+      : {}),
   });
   if (currentRules(s)) {
     if (o.prevent)
@@ -369,8 +382,12 @@ function advance(s, c, now) {
     finish(s, c, now, 'complete');
     return;
   }
-  for (const t of s.tasks) {
+  for (const t of [...s.tasks]) {
     const d = c.tasks[t.templateId];
+    if (s.taskLifetimeVersion === 1 && t.status === 'open' && t.expiresTurn <= s.step) {
+      taskOutcome(s, c, t, now, false, true, 'deadline');
+      continue;
+    }
     if (t.status === 'open' && d.riskAt != null && s.step >= d.riskAt && !t.riskRaised) {
       t.riskRaised = true;
       const e = log(
@@ -472,6 +489,7 @@ export function createDesignShift(c, opts, now) {
     schemaVersion: 2,
     ...(c.journalVersion === 2 ? { journalVersion: 2 } : {}),
     ...(c.mechanicsVersion === 2 ? { mechanicsVersion: 2, scopedFlags: {} } : {}),
+    ...(c.taskLifetimeVersion === 1 ? { taskLifetimeVersion: 1 } : {}),
     engineVersion: 'shift-4',
     id: opts.id,
     profileId: opts.profileId,
@@ -697,6 +715,14 @@ export function reduceDesignShift(state, command, c, now, requestId = null) {
     else advance(s, c, now);
   }
   if (command.type === 'continue') {
+    if (s.taskLifetimeVersion === 1)
+      log(
+        s,
+        'inspection',
+        'Осмотр вагона',
+        'Осмотр завершён без немедленного решения. Вы вернулись к остальным делам.',
+        now
+      );
     s.phase = 'overview';
     s.focusIncidentId = null;
     advance(s, c, now);
@@ -762,6 +788,10 @@ export function publicDesignShift(s, c, now) {
       seat: p.seat,
       zone: definition(c, p).zone,
       status: p.status === 'active' ? 'open' : p.points === 0 ? 'failed' : 'resolved',
+      order:
+        s.log.find(
+          (e) => e.incidentId === p.id && e.type === (p.hidden ? 'discovered' : 'appeared')
+        )?.seq ?? p.knownOrder,
     })),
     tasks: (s.phase === 'briefing' ? [] : s.tasks).map((t) => ({
       id: t.id,
@@ -770,6 +800,8 @@ export function publicDesignShift(s, c, now) {
       seat: t.seat,
       status: t.status,
       parentId: t.parentId,
+      order:
+        s.log.find((e) => e.taskId === t.id && e.type === 'task_created')?.seq ?? t.createdTurn,
     })),
     passengers: s.passengers.map((p) => ({ seat: p.seat, loyalty: p.loyalty })),
     log: visibleLog.map((e) => {
@@ -777,6 +809,7 @@ export function publicDesignShift(s, c, now) {
       const task = s.tasks.find((t) => t.id === e.taskId);
       return {
         seq: e.seq,
+        revisionAfter: e.revisionAfter,
         type: e.type,
         turn: e.turn,
         title: e.title,

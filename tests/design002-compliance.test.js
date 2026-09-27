@@ -148,7 +148,7 @@ test('A7: profile analysis includes unfinished obligations with their actual con
   const p = h.service.bootstrap(h.profile).competency;
   const duty = p.mistakes.find((m) => m.kind === 'task' && m.title.includes('Принять вагон'));
   assert.ok(duty);
-  assert.match(duty.text, /Приёмка не выполнена/);
+  assert.match(duty.text, /Приёмка.*пропущена/);
   assert.equal(h.v2.exactReplay(h.profile, h.run.id).verified, true);
 });
 test('A10: cleaning and checking are scoped to the same problem, global preparation still works', () => {

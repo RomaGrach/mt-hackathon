@@ -800,13 +800,15 @@ const task = (label, text, success, worst, extra = {}) => ({
   text,
   success,
   worst,
+  ttl: 4,
   ...extra,
 });
 export const DESIGN002_CONTENT = {
   id: 'design002',
-  version: '1.1.0',
+  version: '1.2.0',
   journalVersion: 2,
   mechanicsVersion: 2,
+  taskLifetimeVersion: 1,
   schemaVersion: 2,
   engineVersion: 'shift-4',
   rulesVersion: 'design002-1',
@@ -860,16 +862,28 @@ export const DESIGN002_CONTENT = {
   tasks: {
     acceptance: task(
       'Принять вагон',
-      'Проверить готовность салона, оборудование и проходы до обслуживания.',
+      'До выхода к пассажирам проверить крепления багажных полок, оборудование и свободные проходы. Приёмка выполняется в самом начале смены.',
       { text: 'Вагон принят, крепления и проходы проверены.', safety: 5, flag: 'accepted' },
-      { text: 'Приёмка не выполнена; возможные дефекты остались непроверенными.', safety: -8 },
-      { riskAt: 3, risk: 'acceptance-defect', preventive: true }
+      {
+        text: 'Приёмка в начале смены пропущена. Крепления и оборудование остались непроверенными; принять вагон задним числом нельзя.',
+        next: 'acceptance-defect',
+        delay: 2,
+      },
+      { ttl: 1, preventive: true }
     ),
     service: task(
-      'Выполнить обслуживание',
-      'Проверить готовность сервиса и обслужить пассажиров по классу вагона.',
-      { text: 'Плановое обслуживание выполнено.', loyalty: 3, audience: 'all', flag: 'served' },
-      { text: 'Плановое обслуживание пропущено.', loyalty: -6, audience: 'all' }
+      'Подготовить раздачу напитков',
+      'Проверить запас воды и чая, укомплектовать тележку и подготовить безопасную раздачу. После подготовки заказы на чай можно выполнять сразу.',
+      {
+        text: 'Вода и чай подготовлены, тележка укомплектована. Теперь можно сразу выполнить заказ на чай.',
+        flag: 'served',
+      },
+      {
+        text: 'Подготовка напитков пропущена. Пассажиры не получили плановую раздачу.',
+        loyalty: -6,
+        audience: 'all',
+      },
+      { ttl: 4 }
     ),
     'check-seat': task(
       'Проверить размещение пассажира',
@@ -881,13 +895,15 @@ export const DESIGN002_CONTENT = {
       'Принести плед',
       'Доставить обещанный плед пассажиру.',
       { text: 'Плед передан пассажиру.', loyalty: 12 },
-      { text: 'Пассажир не получил обещанный плед.', loyalty: -15 }
+      { text: 'Пассажир не получил обещанный плед.', loyalty: -15 },
+      { ttl: 3 }
     ),
     'bring-tea': task(
       'Принести чай',
       'Выполнить принятый заказ с соблюдением порядка обслуживания.',
       { text: 'Заказ передан пассажиру.', loyalty: 10 },
-      { text: 'Принятый заказ остался невыполненным.', loyalty: -12 }
+      { text: 'Принятый заказ остался невыполненным.', loyalty: -12 },
+      { ttl: 3 }
     ),
     'bring-mask': task(
       'Принести набор для отдыха',
@@ -904,7 +920,8 @@ export const DESIGN002_CONTENT = {
         audience: 4,
         prevent: 'noise-return',
       },
-      { text: 'Результат договорённости не проверен.', loyalty: -7, audience: 4 }
+      { text: 'Результат договорённости не проверен.', loyalty: -7, audience: 4 },
+      { ttl: 2 }
     ),
     'check-aisle': task(
       'Проверить проход',
@@ -936,14 +953,15 @@ export const DESIGN002_CONTENT = {
       'Организовать уборку воды',
       'Удалить воду с обозначенного участка.',
       { text: 'Вода убрана.', flag: 'floor-clean', flagScope: 'problem' },
-      { text: 'Обозначенный участок не убран.', safety: -12 }
+      { text: 'Обозначенный участок не убран.', safety: -12 },
+      { ttl: 2 }
     ),
     'check-floor': task(
       'Проверить сухость пола',
       'После уборки убедиться, что проход безопасен.',
       { text: 'Пол сухой, ограничение снято.', safety: 4 },
       { text: 'Безопасность участка после уборки не подтверждена.', safety: -8 },
-      { requires: 'floor-clean', requiresScope: 'problem', preventive: true }
+      { requires: 'floor-clean', requiresScope: 'problem', preventive: true, ttl: 4 }
     ),
     restock: task(
       'Пополнить санитарные принадлежности',
@@ -996,6 +1014,12 @@ export function validateDesign002(c) {
     }
   }
   for (const t of Object.values(c.tasks || {})) {
+    if (c.taskLifetimeVersion === 1 && (!Number.isInteger(t.ttl) || t.ttl < 1))
+      errors.push('Invalid task lifetime');
+    for (const o of [t.success, t.worst]) {
+      if (o.next && !c.problems[o.next]) errors.push('Missing task consequence');
+      if ((o.tasks || []).some((id) => !c.tasks[id])) errors.push('Missing follow-up task');
+    }
     if ((t.success.safety || 0) > 0 && !t.preventive) errors.push('Safety task must be preventive');
     if (t.risk && !c.problems[t.risk]) errors.push('Missing risk');
   }

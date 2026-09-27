@@ -2423,3 +2423,17 @@ button.wagon-seat:hover {background:#c5dcfa;transform:none;}
 .d2-score-basis {font-size:14px;color:#49657a;margin:0 0 16px;}
 .d2-critical-error {color:#a5263c;font-weight:650;}
 .d2-legacy-clock {font-size:12px;color:#725634;text-align:right;}
+/* One work list and persistent, non-modal action reactions. */
+.d2-tabs {grid-template-columns:repeat(4,1fr);}
+.d2-case-list>.d2-action {margin-top:16px;}
+.d2-case:disabled {opacity:.65;cursor:default;}
+.d2-work-task .d2-case-dot {color:#2a8078;}
+.d2-reaction {border-left:3px solid #2c8c82;background:#e8f3f1;padding:14px 16px;margin:12px 0 20px;}
+.d2-reaction>small {font-size:12px;color:#40665f;}
+.d2-reaction h2 {font-size:17px;margin:6px 0;line-height:1.4;}
+.d2-reaction p {font-size:15px;line-height:1.5;margin:6px 0;}
+.d2-reaction .d2-reaction-impact {font-size:13px;color:#38635b;}
+.d2-reaction summary {cursor:pointer;font-size:14px;padding:10px 0 2px;}
+.d2-reaction ul {padding-left:18px;font-size:14px;}
+.d2-reaction li {margin:10px 0;}
+.d2-reaction li p {font-size:14px;}

@@ -14,6 +14,59 @@ const buttons = (r, type) =>
     .join('');
 const loc = (r, p) =>
   `Вагон ${r.context.carriage}${p?.seat ? ' · место ' + p.seat : ''}${p?.zone === 'aisle' ? ' · проход' : p?.zone === 'vestibule' ? ' · тамбур' : ''}`;
+function reactionView(r, compact = false) {
+  const meaningful = [
+    'action',
+    'task_completed',
+    'dialogue',
+    'inspection',
+    'critical_timeout',
+    'task_failed',
+    'automatic',
+  ];
+  const last = [...r.log].reverse().find((e) => meaningful.includes(e.type));
+  if (!last) return '';
+  const batch = r.log.filter((e) => e.revisionAfter === last.revisionAfter);
+  const primary =
+    batch.find((e) =>
+      ['action', 'task_completed', 'dialogue', 'inspection', 'critical_timeout'].includes(e.type)
+    ) || last;
+  const effects = batch.filter(
+    (e) =>
+      e !== primary &&
+      ['task_created', 'task_failed', 'automatic', 'critical_timeout', 'appeared'].includes(e.type)
+  );
+  const impact = primary.impact;
+  const changes = [];
+  if (impact?.passengers?.length === 1)
+    changes.push(
+      `Лояльность пассажира ${delta(impact.passengers[0].after - impact.passengers[0].before)}`
+    );
+  else if (impact?.passengers?.length)
+    changes.push(`Изменилась лояльность ${impact.passengers.length} пассажиров`);
+  if (impact?.safety) changes.push(`Безопасность ${delta(impact.safety)}`);
+  return `<section class="d2-reaction" aria-label="Результат действия"><small>${primary.type === 'dialogue' ? 'Ответ собеседника' : primary.type === 'critical_timeout' ? 'Время на решение истекло' : 'Результат действия'}</small><h2>${esc(primary.title)}</h2><p>${esc(primary.text)}</p>${changes.length ? `<p class="d2-reaction-impact">${esc(changes.join(' · '))}</p>` : ''}${!compact && effects.length ? `<ul class="d2-reaction-effects">${effects.map((e) => `<li><b>${e.type === 'task_created' ? 'Новая задача: ' : e.type === 'appeared' ? 'Новое обращение: ' : e.type === 'task_failed' ? 'Задача закрыта: ' : ''}${esc(e.title)}</b>${!['task_created', 'appeared'].includes(e.type) ? `<p>${esc(e.text)}</p>` : ''}</li>`).join('')}</ul>` : ''}</section>`;
+}
+function workList(r) {
+  const entries = [
+    ...r.incidents.filter((i) => i.status === 'open').map((i) => ({ ...i, kind: 'problem' })),
+    ...r.tasks.filter((t) => t.status === 'open').map((t) => ({ ...t, kind: 'task' })),
+  ].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  return `<div class="d2-case-list" aria-label="Все текущие проблемы и задачи">${entries
+    .map((item) => {
+      const a = r.actions.find((a) =>
+        item.kind === 'problem'
+          ? a.command === 'focus' && a.incidentId === item.id
+          : a.command === 'task' && a.taskId === item.id
+      );
+      const blocked = !a || a.available === false;
+      const reason =
+        a?.unavailableReason ||
+        (r.pendingInspection ? 'Сначала закончите текущий осмотр' : 'Действие сейчас недоступно');
+      return `<button class="d2-case d2-work-${item.kind}" ${a ? `data-shift-action="${r.actions.indexOf(a)}"` : ''} ${blocked ? 'disabled' : ''}><span class="d2-case-dot" aria-hidden="true">${item.kind === 'task' ? '✓' : '●'}</span><span><small>${item.kind === 'task' ? 'Задача' : 'Обращение'} · ${loc(r, item)}</small><strong>${esc(item.label)}</strong><span>${esc(item.text)}</span>${blocked ? `<small>${esc(reason)}</small>` : ''}</span><span aria-hidden="true">→</span></button>`;
+    })
+    .join('')}${buttons(r, 'inspect')}${buttons(r, 'continue')}</div>`;
+}
 function logView(r) {
   const entries = r.phase === 'briefing' ? [] : r.log;
   if (!entries.length)
@@ -44,7 +97,7 @@ function logView(r) {
       ]
         .filter(Boolean)
         .join(' · ');
-      return `<li><small>${e.turn === 0 ? 'Начало смены' : 'Ход ' + e.turn}${place ? ' · ' + esc(place) : ''}</small><span class="d2-log-kind">${labels[e.type] || 'Событие'}</span><h3>${esc(e.title)}</h3>${e.wasHidden ? '<small>Проблема оставалась незамеченной</small>' : ''}${e.choice ? `<p class="d2-log-choice"><b>Вы:</b> ${esc(e.choice)}</p>` : ''}<p>${esc(e.text)}</p>${e.impact ? `<small>${e.impact.passengers?.length ? 'Лояльность: ' + e.impact.passengers.map((p) => 'место ' + p.seat + ' ' + delta(p.after - p.before)).join(', ') : ''}${e.impact.safety ? ' · Безопасность ' + delta(e.impact.safety) : ''}</small>` : ''}${cause ? `<small>Причина: ${esc(cause.choice || cause.title)}</small>` : ''}</li>`;
+      return `<li><small>${e.turn === 0 ? 'Начало смены' : 'Ход ' + e.turn}${place ? ' · ' + esc(place) : ''}</small><span class="d2-log-kind">${e.type === 'task_failed' && e.reason === 'deadline' ? 'Время задачи упущено' : labels[e.type] || 'Событие'}</span><h3>${esc(e.title)}</h3>${e.wasHidden ? '<small>Проблема оставалась незамеченной</small>' : ''}${e.choice ? `<p class="d2-log-choice"><b>Вы:</b> ${esc(e.choice)}</p>` : ''}<p>${esc(e.text)}</p>${e.impact ? `<small>${e.impact.passengers?.length ? 'Лояльность: ' + e.impact.passengers.map((p) => 'место ' + p.seat + ' ' + delta(p.after - p.before)).join(', ') : ''}${e.impact.safety ? ' · Безопасность ' + delta(e.impact.safety) : ''}</small>` : ''}${cause ? `<small>Причина: ${esc(cause.choice || cause.title)}</small>` : ''}</li>`;
     })
     .join('')}</ol>`;
 }
@@ -62,11 +115,10 @@ function results(r) {
     good = x.problems.filter((p) => p.points === 2);
   const group = (label, count, content) =>
     `<details class="d2-result-group"><summary><span>${label}</span><b>${count}</b></summary>${content}</details>`;
-  return `<section class="d2-results"><p class="eyebrow">${r.step} из ${r.totalTurns} ходов</p><h1 tabindex="-1">${esc(x.title)}</h1><div class="d2-score"><strong>${num(x.shiftScore)}<small> / 100</small></strong><span>+${num(x.competencyGain)} очков компетенций<br>Сохранено автоматически</span></div><p class="d2-score-basis">Баллы за проблемы: <b>${num(x.fact)} / ${num(x.max)}</b></p>${x.reasons.map((t) => `<p class="d2-notice">${esc(t)}</p>`).join('')}<div class="d2-result-summary"><span>Лояльность <b>${num(x.scales.loyalty)}</b></span><span>Безопасность <b>${num(x.scales.safety)}</b></span></div><p class="d2-result-counts">Решено обращений: <b>${x.stats.resolved}</b> · Пропущено: <b>${x.stats.automatic}</b><br>Задачи: <b>${x.stats.tasksDone}</b> выполнено, <b>${x.stats.tasksMissed}</b> не выполнено</p><div class="d2-result-nav">${nav('К курсу')}${nav('Мой прогресс', 'profile')}</div><div class="d2-result-details">${group('Ошибки и пропуски', missed.length, `<p>Остались незамеченными: ${x.stats.undiscovered}. Критических ошибок: ${x.stats.criticalFailed ?? criticalIds.size}.</p>` + (missed.length ? review(missed) : '<p>Все проблемы получили лучший исход.</p>'))}${group('Удачные решения', good.length, good.length ? review(good) : '<p>В этой смене нет решений с максимальной оценкой.</p>')}${group('Рабочие задачи', x.tasks.length, x.tasks.map((t) => `<article class="d2-review"><h3>${t.status === 'completed' ? '✓' : '○'} ${esc(t.label)}</h3><p>${esc(t.text)}</p></article>`).join(''))}${group('Лог событий', r.log.length, logView(r))}</div></section>`;
+  return `<section class="d2-results"><p class="eyebrow">${r.step} из ${r.totalTurns} ходов</p><h1 tabindex="-1">${esc(x.title)}</h1><div class="d2-score"><strong>${num(x.shiftScore)}<small> / 100</small></strong><span>+${num(x.competencyGain)} очков компетенций<br>Сохранено автоматически</span></div><p class="d2-score-basis">Баллы за проблемы: <b>${num(x.fact)} / ${num(x.max)}</b></p>${x.reasons.map((t) => `<p class="d2-notice">${esc(t)}</p>`).join('')}<div class="d2-result-summary"><span>Лояльность <b>${num(x.scales.loyalty)}</b></span><span>Безопасность <b>${num(x.scales.safety)}</b></span></div><p class="d2-result-counts">Решено обращений: <b>${x.stats.resolved}</b> · Пропущено: <b>${x.stats.automatic}</b><br>Задачи: <b>${x.stats.tasksDone}</b> выполнено, <b>${x.stats.tasksMissed}</b> не выполнено</p><div class="d2-result-nav">${nav('К курсу')}${nav('Мой прогресс', 'profile')}</div>${reactionView(r, true)}<div class="d2-result-details">${group('Ошибки и пропуски', missed.length, `<p>Остались незамеченными: ${x.stats.undiscovered}. Критических ошибок: ${x.stats.criticalFailed ?? criticalIds.size}.</p>` + (missed.length ? review(missed) : '<p>Все проблемы получили лучший исход.</p>'))}${group('Удачные решения', good.length, good.length ? review(good) : '<p>В этой смене нет решений с максимальной оценкой.</p>')}${group('Рабочие задачи', x.tasks.length, x.tasks.map((t) => `<article class="d2-review"><h3>${t.status === 'completed' ? '✓' : '○'} ${esc(t.label)}</h3><p>${esc(t.text)}</p></article>`).join(''))}${group('Лог событий', r.log.length, logView(r))}</div></section>`;
 }
 export function designShift(r) {
   if (r.phase === 'result') return results(r);
-  const active = r.incidents.filter((i) => i.status === 'open');
   const passenger = r.scene && r.passengers.find((p) => p.seat === r.scene.seat);
   const passengerMeter = passenger
     ? `<div class="d2-passenger-meter"><span>Лояльность пассажира · место ${passenger.seat} <b>${num(passenger.loyalty)}</b></span><progress max="100" value="${passenger.loyalty}" aria-label="Лояльность пассажира на месте ${passenger.seat}"></progress></div>`
@@ -79,32 +131,12 @@ export function designShift(r) {
   if (r.phase === 'briefing')
     scene = `<p class="eyebrow">${esc(r.context.serviceClassLabel)} · вагон ${r.context.carriage}</p><h1 tabindex="-1">Ваша смена</h1>${legacyTiming}<p class="d2-lead">На смену — ${r.totalTurns} рабочих ходов. Дел будет больше, чем можно успеть: выбирайте, кому и чему уделить внимание.</p><ul class="d2-rules"><li>Одна задача или завершённый этап проблемы — один ход.</li><li>Осмотр открывает скрытые проблемы. Одну найденную можно решить в тот же ход.</li><li>В некоторых ситуациях после входа запускается реальный таймер.</li><li>Решения и пропущенные дела меняют лояльность и безопасность.</li></ul><div class="d2-primary-actions">${buttons(r, 'begin')}</div>`;
   else if (r.phase === 'scene')
-    scene = `<div class="d2-scene-text scene-content"><p class="eyebrow">${loc(r, r.scene)}</p><h1 tabindex="-1">${esc(r.scene.title)}</h1><p class="d2-speaker">${esc(r.scene.speaker)}</p>${passengerMeter}<p class="d2-lead">${esc(r.scene.text)}</p>${r.pendingInspection ? '<p class="d2-caption">Решение входит в ход текущего осмотра.</p>' : ''}</div><div class="d2-choices shift-actions">${buttons(r, 'choose')}${buttons(r, 'overview')}</div>`;
+    scene = `<div class="d2-scene-text scene-content"><p class="eyebrow">${loc(r, r.scene)}</p><h1 tabindex="-1">${esc(r.scene.title)}</h1><p class="d2-speaker">${esc(r.scene.speaker)}</p>${passengerMeter}${[...r.log].reverse().find((e) => e.type === 'dialogue')?.revisionAfter === r.revision ? reactionView(r, true) : ''}<p class="d2-lead">${esc(r.scene.text)}</p>${r.pendingInspection ? '<p class="d2-caption">Решение входит в ход текущего осмотра.</p>' : ''}</div><div class="d2-choices shift-actions">${buttons(r, 'choose')}${buttons(r, 'overview')}</div>`;
   else
-    scene = `<p class="eyebrow">${loc(r)}</p><h1 tabindex="-1">Дела в вагоне</h1>${r.pendingInspection ? '<p class="d2-notice">Осмотр: выберите одну найденную проблему для решения в этом же ходу или закончите осмотр.</p>' : ''}${
-      active.length
-        ? `<div class="d2-case-list">${active
-            .filter((i) => !r.pendingInspection || r.pendingInspection.includes(i.id))
-            .map((i) => {
-              const a = r.actions.find((a) => a.command === 'focus' && a.incidentId === i.id);
-              return a
-                ? `<button class="d2-case" data-shift-action="${r.actions.indexOf(a)}"><span class="d2-case-dot">●</span><span><small>${loc(r, i)}</small><strong>${esc(i.label)}</strong><span>${esc(i.text)}</span></span><span>→</span></button>`
-                : '';
-            })
-            .join('')}</div>`
-        : '<p class="d2-lead">Сейчас нет известных обращений. Можно заняться обязанностями или осмотреть вагон.</p>'
-    }<div class="d2-primary-actions">${buttons(r, 'inspect')}${buttons(r, 'continue')}<button class="d2-action" data-game-tab="tasks">Рабочие задачи <small>${r.tasks.filter((t) => t.status === 'open').length}</small></button></div>${r.log.length ? `<p class="d2-recent"><b>Последнее:</b> ${esc([...r.log].reverse().find((e) => ['action', 'automatic', 'task_completed', 'critical_timeout', 'inspection'].includes(e.type))?.text || 'Выберите первое рабочее действие.')}</p>` : ''}`;
-  const tasks = r.tasks
-    .filter((t) => t.status === 'open')
-    .map((t) => {
-      const a = r.actions.find((a) => a.command === 'task' && a.taskId === t.id);
-      return `<article class="d2-task"><small>${t.seat ? 'Место ' + t.seat : 'Вагон'}</small><h2>${esc(t.label)}</h2><p>${esc(t.text)}</p>${a ? actionButton(r, a, 'Выполнить') : '<small>Сначала завершите текущий осмотр.</small>'}</article>`;
-    })
-    .join('');
-  return `<div class="shift-console d2-console" data-phase="${r.phase}"><section class="d2-pane ${r.phase === 'scene' ? 'd2-dialogue' : ''}" data-game-pane="scene">${scene}</section><section class="d2-pane" data-game-pane="map" hidden><h1>Вагон</h1>${wagonMap(r)}</section><section class="d2-pane" data-game-pane="tasks" hidden><h1>Рабочие задачи</h1>${tasks || (r.phase === 'briefing' ? '<p>Задачи появятся после начала смены.</p>' : '<p>Все текущие задачи выполнены.</p>')}<div class="d2-primary-actions">${buttons(r, 'inspect')}</div></section><section class="d2-pane" data-game-pane="log" hidden><h1>Лог событий</h1>${logView(r)}</section><section class="d2-pane" data-game-pane="tools" hidden><h1>Моя смена</h1>${legacyTiming}<p>${esc(r.context.serviceClassLabel)} · ${r.step} из ${r.totalTurns} ходов использовано</p>${nav('На главную')}<p>Можно вернуться в эту смену.${r.timingPolicy.durationMs !== null ? ' Таймер начатой срочной ситуации продолжает идти при выходе.' : ''}</p><details class="d2-exit"><summary>Прервать смену</summary><p>Все оставшиеся дела получат свои последствия. Незавершённая практика не добавит очков компетенций.</p>${buttons(r, 'abort')}</details></section><nav class="d2-tabs" aria-label="Экраны смены">${[
+    scene = `<p class="eyebrow">${loc(r)}</p><h1 tabindex="-1">Все дела в вагоне</h1>${reactionView(r)}${r.pendingInspection ? '<p class="d2-notice">Выберите одну найденную проблему или закончите осмотр. Остальные дела остаются в списке.</p>' : ''}${workList(r)}`;
+  return `<div class="shift-console d2-console" data-phase="${r.phase}"><section class="d2-pane ${r.phase === 'scene' ? 'd2-dialogue' : ''}" data-game-pane="scene">${scene}</section><section class="d2-pane" data-game-pane="map" hidden><h1>Вагон</h1>${wagonMap(r)}</section><section class="d2-pane" data-game-pane="log" hidden><h1>Лог событий</h1>${logView(r)}</section><section class="d2-pane" data-game-pane="tools" hidden><h1>Моя смена</h1>${legacyTiming}<p>${esc(r.context.serviceClassLabel)} · ${r.step} из ${r.totalTurns} ходов использовано</p>${nav('На главную')}<p>Можно вернуться в эту смену.${r.timingPolicy.durationMs !== null ? ' Таймер начатой срочной ситуации продолжает идти при выходе.' : ''}</p><details class="d2-exit"><summary>Прервать смену</summary><p>Все оставшиеся дела получат свои последствия. Незавершённая практика не добавит очков компетенций.</p>${buttons(r, 'abort')}</details></section><nav class="d2-tabs" aria-label="Экраны смены">${[
     ['scene', '◉', 'Дела'],
     ['map', '▦', 'Вагон'],
-    ['tasks', '✓', 'Задачи'],
     ['log', '≡', 'Лог'],
     ['tools', '☰', 'Меню'],
   ]
