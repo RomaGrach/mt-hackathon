@@ -29,7 +29,7 @@ const good = { recommended: true, competencies: { empathy: 1, protocol: 1 } };
 const team = { recommended: true, competencies: { protocol: 1, teamwork: 2 } };
 const catalog = structuredClone(prototype);
 for (const s of catalog) {
-  s.version = '2.0.0';
+  s.version = '2.0.1';
   s.duration = '4–6 мин';
   s.resources = { colleague: 1 };
   s.skillKeys =
@@ -509,7 +509,7 @@ catalog.push({
   skills: ['Эмпатия', 'Сервис', 'Команда'],
   skillKeys: ['empathy', 'protocol', 'teamwork'],
   carriage: 5,
-  version: '2.0.0',
+  version: '2.0.1',
   start: 'start',
   resources: { colleague: 1 },
   objective: 'Проверить наличие, согласовать альтернативу и цену до оказания услуги.',
@@ -760,7 +760,7 @@ catalog.push({
   skills: ['Бдительность', 'Протокол', 'Команда'],
   skillKeys: ['protocol', 'speed', 'teamwork'],
   carriage: 3,
-  version: '2.0.0',
+  version: '2.0.1',
   start: 'start',
   resources: { colleague: 1 },
   objective:
@@ -1001,6 +1001,100 @@ catalog.push({
     ),
   },
 });
+
+// Editorial review 2026-09-27: keep narrated facts consistent with every incoming branch.
+const reviewedOption = (sid, nid, oid, patch) => {
+  const o = catalog.find((s) => s.id === sid)?.nodes[nid]?.options.find((o) => o.id === oid);
+  if (!o) throw new Error('Missing reviewed option: ' + [sid, nid, oid].join('/'));
+  Object.assign(o, patch);
+};
+reviewedOption('conflict', 'start', 'listen', {
+  title: 'Выслушать обоих по очереди и сверить билеты',
+  feedback:
+    'Вы выслушали обе стороны и сверили номера вагонов и мест. Теперь можно обсуждать проверяемое решение.',
+});
+reviewedOption('conflict', 'calm', 'resolve', {
+  title: 'Объяснить порядок проверки и согласования пересадки',
+  feedback:
+    'Пассажиры услышали следующий шаг. Возможность пересадки ещё нужно проверить; конфликт пока не завершён.',
+});
+reviewedOption('conflict', 'offer', 'senior', {
+  title: 'Запросить подтверждение мест у начальника поезда',
+  feedback:
+    'Начальник поезда проверил места и подтвердил возможный вариант. Теперь нужно объяснить его пассажирам и получить согласие.',
+  set: { checked: true },
+});
+reviewedOption('medical', 'start', 'call', { set: { helpCalled: true, helpTimely: true } });
+reviewedOption('medical', 'start', 'ask', { set: { helpCalled: true, helpTimely: true } });
+reviewedOption('medical', 'support', 'space', {
+  feedback:
+    'Вы освободили доступ и продолжаете наблюдать за пассажиром. Наблюдаемые сведения ещё предстоит передать экипажу.',
+});
+reviewedOption('medical', 'followup', 'privacy', {
+  branches: [
+    { when: { flags: { handedOver: true, helpTimely: true }, minSafety: 85 }, next: 'great' },
+  ],
+});
+reviewedOption('delay', 'start', 'coordinate', {
+  title: 'Попросить не открывать дверь, связаться с экипажем и сообщить проверенные сведения',
+  feedback:
+    'Вы остановили попытку открыть дверь и передали подтверждённый статус. Неизвестное время отправления не заменено обещанием.',
+});
+reviewedOption('delay', 'uncertain', 'correct', {
+  title: 'Попросить не открывать двери и сообщить подтверждённый статус',
+  feedback:
+    'Вы напомнили о безопасности у дверей и отделили известные факты от предположений. При неверном прежнем обещании его нужно прямо исправить.',
+});
+reviewedOption('service', 'clarify', 'confirm', { set: { consent: true, stock: true } });
+reviewedOption('baggage', 'check', 'clear', {
+  title:
+    'Проверить проход и двери; если чемодан мешает, помочь владельцу переставить его в предусмотренное место',
+  feedback:
+    'Вы проверили не только прежнее место чемодана, но и доступ к дверям; оставшееся препятствие устранено вместе с владельцем.',
+});
+reviewedOption('service', 'offer', 'consent', {
+  title: 'Объяснить условия замены, назвать проверенную цену и получить согласие',
+});
+reviewedOption('service', 'clarify', 'confirm', {
+  title: 'Уточнить условия и цену замены, дождаться решения пассажира',
+  set: { consent: true, stock: true },
+});
+Object.assign(catalog.find((s) => s.id === 'conflict').nodes['offer'], {
+  text: 'Пассажиры хотят пересесть рядом в другой ряд того же класса. Оба ждут ответа: какие места им действительно можно занять?',
+});
+Object.assign(catalog.find((s) => s.id === 'conflict').nodes['mixed'], {
+  title: 'Обращение требует внимания',
+  text: 'Полное урегулирование не подтверждено. В разборе видно, на каком этапе остановилась работа и что ещё нужно проверить.',
+});
+Object.assign(catalog.find((s) => s.id === 'medical').nodes['mixed'], {
+  title: 'Помощь подключена',
+  text: 'Экипаж продолжает организацию помощи. Это не подтверждение улучшения состояния пассажира; последовательность ваших действий разобрана отдельно.',
+});
+Object.assign(catalog.find((s) => s.id === 'delay').nodes['uncertain'], {
+  text: 'Подтверждённого времени отправления нет. Пассажиры устали ждать, у дверей собралась группа и снова просит объяснений.',
+});
+Object.assign(catalog.find((s) => s.id === 'delay').nodes['mixed'], {
+  title: 'Информирование нужно продолжить',
+  text: 'Окончательного времени отправления ещё нет. Разбор покажет, какие сведения вы сообщили и что осталось без ответа.',
+});
+Object.assign(catalog.find((s) => s.id === 'service').nodes['clarify'], {
+  text: 'Бистро подтвердило наличие альтернативы и её цену. Пассажир ждёт решения; без его согласия заказ ещё не оформлен.',
+});
+Object.assign(catalog.find((s) => s.id === 'service').nodes['mixed'], {
+  title: 'Итог обращения требует проверки',
+  text: 'Сервисный эпизод завершён, но полное решение запроса не подтверждено. Проверьте в разборе, согласован ли заказ и что осталось сделать.',
+});
+Object.assign(catalog.find((s) => s.id === 'baggage').nodes['mixed'], {
+  title: 'Безопасный результат подтверждён не полностью',
+  text: 'Разбор покажет, что вы проверили, что передали ответственным сотрудникам и какие действия остались незавершёнными.',
+});
+Object.assign(catalog.find((s) => s.id === 'service').nodes.clarify.timeout, {
+  next: 'mixed',
+  feedback:
+    'Время согласования истекло. Заказ не оформлен и списания не было; пассажир остался без согласованной альтернативы.',
+});
+catalog.find((s) => s.id === 'delay').nodes.announce.timeout.feedback =
+  'Следующее обновление не прозвучало. Пассажиры остались без новых подтверждённых сведений.';
 
 export const scenarios = catalog.map(validateScenario);
 export const getScenario = (id) => scenarios.find((s) => s.id === id);

@@ -265,6 +265,7 @@ function finish(s, c, now, reason) {
       text: p.outcome,
       parentId: p.parentId || null,
       alternative:
+        definition(c, p).debriefAlternative ||
         definition(c, p).choices.find((o) => o.points === 2)?.label ||
         'Своевременно организовать помощь и передать проверенные сведения.',
     })),

@@ -250,7 +250,7 @@ export const LEGACY_SHIFT_CONTENT = {
 };
 
 // Keep the original publication byte-identical for pinned runs and exact replay.
-export const SHIFT_CONTENT = {
+export const PREVIOUS_SHIFT_CONTENT = {
   ...structuredClone(LEGACY_SHIFT_CONTENT),
   version: 'shift-content-2',
   engineVersion: 'shift-3',
@@ -296,6 +296,25 @@ export const SHIFT_CONTENT = {
   debrief: { ...LEGACY_SHIFT_CONTENT.debrief, ...SEAT_DIALOGUE.debrief },
 };
 
+// Publication 2 remains byte-identical for existing runs and historical replay.
+export const SHIFT_CONTENT = structuredClone(PREVIOUS_SHIFT_CONTENT);
+SHIFT_CONTENT.version = 'shift-content-3';
+SHIFT_CONTENT.dialogue.version = 2;
+SHIFT_CONTENT.dialogue.scenes['a-listen'].text =
+  '«Извините, у меня в билете место 18, но я не могу разобраться в обозначениях. Кажется, здесь уже сидит другой пассажир. Куда мне садиться?»';
+SHIFT_CONTENT.dialogue.scenes['a-verify'].text =
+  '«Вот билет: вагон 3, место 18. Рядом с этим номером уже кто-то сидит. Можете сверить билет и маркировку вместе со мной?»';
+SHIFT_CONTENT.dialogue.scenes['a-concern'].text =
+  '«Я впервые еду в таком вагоне и боюсь сесть не туда. Сумка тяжёлая, не хочется ходить с ней туда-сюда. Покажите, пожалуйста, где моё кресло.»';
+SHIFT_CONTENT.dialogue.scenes['a-return'].text =
+  '«Запрос принят. Проверено: в билете указано место 18, а сосед занимает место 19. Проверьте, удалось ли пассажиру разместиться, и сообщите результат именно ему.»';
+SHIFT_CONTENT.dialogue.labels['acknowledge-and-promise'] =
+  '«Мне нужно ненадолго отойти. Я вернусь к вам и помогу разобраться»';
+SHIFT_CONTENT.variants['blocked-aisle'].safeActions[1].label =
+  '«Давайте вместе уберём сумку в предназначенное для багажа место и освободим проход»';
+for (const p of Object.values(SHIFT_CONTENT.policies))
+  p.correction += ' и объяснить пассажиру правильные сведения';
+
 export function canonical(value) {
   if (Array.isArray(value)) return '[' + value.map(canonical).join(',') + ']';
   if (value && typeof value === 'object')
@@ -320,7 +339,9 @@ export function validateShiftContent(c) {
   check(['shift-2', 'shift-3'].includes(c?.engineVersion), 'Unsupported engine');
   check(
     c?.engineVersion === 'shift-3'
-      ? canonical(c.dialogue) === canonical(SEAT_DIALOGUE)
+      ? [PREVIOUS_SHIFT_CONTENT.dialogue, SHIFT_CONTENT.dialogue].some(
+          (d) => canonical(c.dialogue) === canonical(d)
+        )
       : !c?.dialogue,
     'Unsupported dialogue controller'
   );

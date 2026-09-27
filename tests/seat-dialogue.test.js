@@ -107,7 +107,7 @@ test('old publication remains valid and an old pinned run replays after new publ
       'UPDATE shift_publications SET enabled=0 WHERE content_version=?',
       LEGACY_SHIFT_CONTENT.version
     );
-    assert.equal(h.v2.currentContent().version, 'shift-content-2');
+    assert.equal(h.v2.currentContent().version, SHIFT_CONTENT.version);
     const r = h.early();
     assert.equal(r.passed, true);
     assert.equal(h.v2.exactReplay(h.profile, h.run.id).verified, true);
