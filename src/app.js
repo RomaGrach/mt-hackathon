@@ -527,6 +527,13 @@ app.addEventListener('click', (event) => {
     return;
   }
   perform(async () => {
+    if (action === 'course-start')
+      return startShift({
+        mode: 'training',
+        timingPolicyId: 'standard',
+        serviceClass: 'standard',
+        ...(element.dataset.variant ? { variantId: element.dataset.variant } : {}),
+      });
     if (action === 'tutorial-start') {
       const active = model.run?.phase !== 'result' ? model.run : null;
       const id = active?.id || model.boot.activeRun?.id;
