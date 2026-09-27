@@ -2222,3 +2222,9 @@ button:disabled { opacity: .78; cursor: wait; }
 .dialogue-scene .previous-line span { display:block; font-weight:700; margin-bottom:4px; }
 .dialogue-scene .speaker { color:#215e79; font-size:15px; font-weight:700; }
 .dialogue-scene .observation { line-height:1.55; }
+@media(max-width:600px) {
+ .playing-shell .shift-stage:has(.dialogue-scene) .scene-content { min-height:220px; }
+ .playing-shell .shift-stage:has(.dialogue-scene) > .shift-actions { max-height:48%; overflow-y:auto; flex-shrink:0; }
+ .playing-shell .shift-stage:has(.dialogue-scene) .page-heading h1 { font-size:22px; }
+ .dialogue-scene .previous-line { font-size:13px; margin-bottom:10px; }
+}

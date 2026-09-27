@@ -22,6 +22,7 @@ export function actionSeconds(action) {
       'show-seat-yourself': 45,
       'explain-seat-yourself': 30,
       'close-seat-yourself': 15,
+      'leave-seat-without-answer': 15,
       'verify-and-request': 45,
       'confirm-and-return-p1': 30,
       'confirm-and-return-p2': 30,
@@ -993,7 +994,7 @@ export function reduceShift(state, command, c, acceptedAt, requestId = null) {
       s.flags.seatAssisted = id === 'show-seat-yourself';
       text =
         id === 'show-seat-yourself'
-          ? 'Вы показали кресло 18 и помогли пассажиру разместить сумку. «Спасибо, теперь всё понятно», — отвечает пассажир.'
+          ? 'Вы показали кресло 18 и помогли с сумкой. Пассажир переспросил, правильно ли нашёл своё место.'
           : 'Вы показали номер 18 на кресле и сверили его с билетом. Пассажир нашёл своё место.';
     } else if (c.dialogue && id === 'close-seat-yourself') {
       a.status = 'resolved';
