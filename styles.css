@@ -2262,10 +2262,10 @@ button:disabled { opacity: .78; cursor: wait; }
 .d2-case-dot {color:#3867a2;margin-top:23px;}
 .d2-recent {border-left:3px solid #8ba7c5;padding-left:12px;color:#526780;font-size:13px;line-height:1.5;margin-top:24px;}
 .d2-notice {padding:12px 14px;background:#e9f0f9;border-left:3px solid #4d75b1;line-height:1.5;}
-.d2-console .d2-dialogue {display:flex;flex-direction:column;overflow:hidden;}
-.d2-dialogue .d2-scene-text {flex:1;min-height:80px;overflow-y:auto;}
+.d2-console .d2-dialogue {display:block;overflow-y:auto;}
+.d2-dialogue .d2-scene-text {min-height:0;overflow:visible;}
 .d2-speaker {font-size:13px;font-weight:700;color:#4d688a;margin:18px 0 5px;}
-.d2-console .d2-choices {display:grid;gap:8px;flex:0 1 auto;max-height:58%;overflow-y:auto;margin-top:14px;}
+.d2-console .d2-choices {display:grid;gap:8px;max-height:none;overflow:visible;margin-top:14px;}
 .d2-console .d2-choices .d2-action {padding:12px 14px;min-height:48px;border-radius:12px;font-size:15px;}
 .d2-task {border-bottom:1px solid #d4deea;padding:18px 0;}
 .d2-task p {font-size:14px;color:#53677d;line-height:1.5;}
@@ -2327,7 +2327,6 @@ button:disabled { opacity: .78; cursor: wait; }
 .d2-profile>progress {width:100%;accent-color:#527ca6;}
 .d2-settings button {margin:8px 0;}
 @media(max-width:400px) {.d2-console .d2-pane{padding:17px 14px}.d2-pane h1{font-size:23px}.d2-lead{font-size:16px}.d2-home-head{gap:10px}.d2-course li{gap:8px;padding:14px 4px}.d2-course h3{font-size:14px}.d2-score{gap:16px}.d2-score>strong{font-size:40px}.d2-score>span{font-size:12px}.playing-shell .game-header:has(.d2-clock){padding:8px 12px;gap:12px}}
-@media(max-height:560px) {.d2-console .d2-dialogue{display:block;overflow-y:auto}.d2-dialogue .d2-scene-text{overflow:visible}.d2-console .d2-choices{max-height:none;overflow:visible}}
 
 /* Full carriage: preserve readable seats, scroll the pane instead of scaling the plan. */
 .wagon-map {max-width:740px;margin:0 auto;background:transparent;border:0;border-radius:0;padding:0;}
