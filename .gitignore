@@ -13,3 +13,6 @@ cookies.txt
 *.sqlite-wal
 *.sqlite-shm
 sites-game-v*.tar.gz
+
+# Generated from source for each release; never a second source of truth.
+dist/

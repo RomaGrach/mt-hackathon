@@ -6,7 +6,7 @@ import { ShiftClient, SHIFT_PENDING_KEY } from './shift-client.js';
 const shiftClient = new ShiftClient();
 
 const app = document.querySelector('#app');
-const TUTORIAL_KEY = 'reis400.interface-tour.v1';
+const TUTORIAL_KEY = 'reis400.interface-tour.design002';
 let tutorialSeen = false;
 try {
   tutorialSeen = localStorage.getItem(TUTORIAL_KEY) === 'done';
@@ -28,6 +28,9 @@ const model = {
   admin: null,
   error: null,
   busy: false,
+  workCard: null,
+  mapIncident: null,
+  legacyAcknowledgement: null,
   sessionKnown: false,
   offline: !navigator.onLine,
 };
@@ -87,9 +90,34 @@ function toggleCourseModule(section) {
     })
     .catch(() => {});
 }
+let refreshTimer = null;
+let refreshPromise = null;
 
 function acceptRun(run) {
-  if (model.run?.id !== run.id || model.run?.revision !== run.revision) gameTab = 'scene';
+  if (model.run?.id !== run.id || model.run?.revision !== run.revision) {
+    model.legacyAcknowledgement = null;
+    if (
+      model.run?.id === run.id &&
+      run.engineVersion === 'shift-4' &&
+      !run.interactionVersion &&
+      !run.pendingInspection &&
+      ['overview', 'result'].includes(run.phase)
+    ) {
+      const event = run.log.find(
+        (e) =>
+          e.revisionAfter === run.revision &&
+          ['action', 'task_completed', 'inspection', 'critical_timeout'].includes(e.type)
+      );
+      if (event)
+        model.legacyAcknowledgement = {
+          ...event,
+          events: run.log.filter((e) => e.revisionAfter === run.revision && e.seq > event.seq),
+        };
+    }
+    gameTab = 'scene';
+    model.workCard = null;
+    model.mapIncident = null;
+  }
   model.run = run;
   shiftClient.run = run?.schemaVersion === 2 ? run : null;
   sampledAt = performance.now();
@@ -241,6 +269,7 @@ async function reloadBoot() {
 }
 async function perform(action, focus = true) {
   if (model.busy) return;
+  clearTimeout(refreshTimer);
   model.busy = true;
   model.error = null;
   app.setAttribute('aria-busy', 'true');
@@ -252,6 +281,7 @@ async function perform(action, focus = true) {
       el.disabled = true;
     });
   try {
+    if (refreshPromise) await refreshPromise;
     await action();
   } catch (e) {
     if (e.status === 401) {
@@ -334,12 +364,22 @@ async function sync() {
     }
   }
   await reloadBoot();
-  if (model.run && model.view === 'run') acceptRun(await api('/runs/' + model.run.id));
+  if (model.run && model.view === 'run') {
+    acceptRun(await api('/runs/' + model.run.id));
+    await beginLoadedShift();
+  }
   if (model.view === 'leaderboard') await loadRankings();
 }
 
+async function beginLoadedShift() {
+  if (model.run?.engineVersion === 'shift-4' && model.run.phase === 'briefing') {
+    const begin = model.run.actions.find((a) => a.command === 'begin');
+    if (begin) acceptRun(await shiftClient.send(begin));
+  }
+}
 async function openRun(id) {
   acceptRun(await api('/runs/' + id));
+  await beginLoadedShift();
   model.view = 'run';
   if (model.run.phase === 'result') await reloadBoot();
 }
@@ -354,6 +394,12 @@ async function navigate(view) {
   if (view === 'leaderboard') await loadRankings();
 }
 async function loadRankings() {
+  if (model.boot?.competency) {
+    model.competencyLeaders = await api(
+      '/v2/competency/leaderboard?scope=' + model.scope + '&offset=' + model.rankOffset
+    );
+    return;
+  }
   const period = model.rankPeriod ? '&periodId=' + encodeURIComponent(model.rankPeriod) : '';
   [model.leaders, model.motivationLeaders] = await Promise.all([
     api('/leaderboard?scope=' + model.scope),
@@ -374,6 +420,7 @@ async function startShift(options = {}) {
       ...options,
     })
   );
+  await beginLoadedShift();
   model.view = 'run';
   model.auditMessage = null;
 }
@@ -398,8 +445,8 @@ const tourSteps = [
   [
     'scene',
     '.game-clock',
-    'Время смены',
-    'На часах — игровое время. Рабочее действие расходует столько времени, сколько указано на его кнопке.',
+    'Ходы смены',
+    'Задача или завершённый этап проблемы расходует один ход. Пока вы действуете, другие дела развиваются. Чтение не тратит ход.',
   ],
   [
     'scene',
@@ -411,31 +458,37 @@ const tourSteps = [
     'scene',
     '.scene-content',
     'Ситуация',
-    'Здесь указаны место и происходящее. Длинный текст можно прокрутить отдельно от кнопок.',
+    'Здесь указаны место и происходящее. Текст и варианты ответа прокручиваются вместе. Выбранную проблему нужно довести до результата внутри карточки.',
   ],
   [
     'scene',
-    '.shift-stage > .shift-actions',
+    '.shift-actions',
     'Действия',
-    'Каждая кнопка — отдельное решение. Во время срочной ситуации появится таймер реального времени.',
+    'Выбирайте реплики и действия в диалоге. После завершения прочитайте результат и нажмите «Окей». В срочной ситуации работает реальный таймер.',
   ],
   [
     'map',
     '[data-game-tab="map"]',
     'Вагон',
-    'Эта кнопка открывает известные ситуации. Выберите обращение, чтобы заняться им. Осмотр салона открывает новые обстоятельства.',
+    'На схеме сначала показывается название проблемы. Открыть другую можно после завершения текущей карточки. Осмотр салона открывает новые обстоятельства.',
   ],
   [
-    'tasks',
-    '[data-game-tab="tasks"]',
-    'Задачи',
-    'Здесь видны все задачи, их сроки и результат. Переходы между вкладками не тратят игровое время.',
+    'scene',
+    '[data-game-tab="scene"]',
+    'Все дела',
+    'Здесь вместе перечислены известные проблемы и рабочие задачи. Решения создают новые обязательства, а пропущенные дела оставляют последствия.',
+  ],
+  [
+    'log',
+    '[data-game-tab="log"]',
+    'Лог событий',
+    'Здесь появляются ваши решения, новые задачи и последствия. В конце смены откроется краткий итог с подробностями по разделам.',
   ],
   [
     'tools',
     '[data-game-tab="tools"]',
     'Управление',
-    'Здесь находятся подсказка, учебная пауза, выход на главную и прерывание смены. Срочный таймер работает, пока вы не включили паузу.',
+    'Здесь можно выйти на главную и вернуться позже. Реальный таймер начатой срочной ситуации продолжает идти.',
   ],
 ];
 function finishTutorial() {
@@ -533,6 +586,26 @@ app.addEventListener('click', (event) => {
       .forEach((b) => b.setAttribute('aria-pressed', String(b === homeTab)));
     return;
   }
+  if (event.target.closest('[data-local-ack]') && !model.busy) {
+    model.legacyAcknowledgement = null;
+    gameTab = 'scene';
+    paint(true);
+    return;
+  }
+  const preview = event.target.closest('[data-map-preview]');
+  if (preview && !model.busy) {
+    model.mapIncident = preview.dataset.mapPreview;
+    gameTab = 'map';
+    paint(false);
+    return;
+  }
+  const work = event.target.closest('[data-work-card]');
+  if (work && !work.disabled && !model.busy) {
+    model.workCard = work.dataset.workCard;
+    gameTab = 'scene';
+    paint(true);
+    return;
+  }
   const incidentTarget = event.target.closest('[data-incident-target]');
   if (incidentTarget && !model.busy) {
     perform(async () => {
@@ -561,6 +634,8 @@ app.addEventListener('click', (event) => {
     return;
   if (element.dataset.shiftAction !== undefined) {
     const action = model.run?.actions[Number(element.dataset.shiftAction)];
+    const renderedRevision = model.run?.revision;
+    const renderedRunId = model.run?.id;
     if (!action) return;
     if (pending || readPending(globalThis.sessionStorage, SHIFT_PENDING_KEY)) {
       model.error = 'Сначала восстановите предыдущий запрос.';
@@ -570,7 +645,23 @@ app.addEventListener('click', (event) => {
     element.classList.add('action-pending');
     element.setAttribute('aria-busy', 'true');
     perform(async () => {
-      acceptRun(await shiftClient.send(action));
+      const current = model.run.actions.find((a) =>
+        ['command', 'incidentId', 'sceneId', 'actionId', 'taskId', 'zoneId', 'windowId'].every(
+          (k) => (a[k] ?? null) === (action[k] ?? null)
+        )
+      );
+      if (
+        model.run.id !== renderedRunId ||
+        model.run.revision !== renderedRevision ||
+        !current ||
+        current.available === false
+      )
+        throw new ApiError(
+          'Ситуация уже изменилась. Выберите доступное действие.',
+          'ACTION_NOT_AVAILABLE',
+          409
+        );
+      acceptRun(await shiftClient.send(current));
       // Observation and waiting return directly to the updated work surface.
       // Continue authored dialogue turns; retain decision history and never skip a timeout.
       if (
@@ -761,7 +852,7 @@ app.addEventListener('submit', (event) => {
         mode: data.mode,
         timingPolicyId: data.timingPolicyId,
         serviceClass: data.serviceClass,
-        ...(data.mode === 'training' ? { variantId: data.variantId } : {}),
+        ...(data.variantId ? { variantId: data.variantId } : {}),
       });
     if (form === 'motivation-preferences') {
       await mutate('/v2/motivation/preferences', {
@@ -823,14 +914,44 @@ await perform(async () => {
 // State refresh is event-driven; the local countdown never polls the API.
 let lastRefresh = 0;
 function refreshOnReturn() {
+  clearTimeout(refreshTimer);
   if (document.hidden || model.busy || !navigator.onLine || Date.now() - lastRefresh < 1000) return;
-  lastRefresh = Date.now();
-  if (model.run && model.view === 'run' && model.run.phase !== 'result')
-    perform(async () => {
-      if (pending || readPending(globalThis.sessionStorage, SHIFT_PENDING_KEY)) return sync();
-      acceptRun(await api('/runs/' + model.run.id));
-    }, false);
+  refreshTimer = setTimeout(() => {
+    if (
+      document.hidden ||
+      model.busy ||
+      refreshPromise ||
+      !model.run ||
+      model.view !== 'run' ||
+      model.run.phase === 'result'
+    )
+      return;
+    if (pending || readPending(globalThis.sessionStorage, SHIFT_PENDING_KEY)) {
+      perform(() => sync(), false);
+      return;
+    }
+    lastRefresh = Date.now();
+    const id = model.run.id;
+    refreshPromise = api('/runs/' + id)
+      .then((run) => {
+        if (model.run?.id !== id || run.revision < model.run.revision) return;
+        const changed = run.revision !== model.run.revision;
+        acceptRun(run);
+        // A focus refresh must not replace or disable a button under the pointer.
+        if (changed && !model.busy) paint(false);
+      })
+      .catch((error) => {
+        if (!model.busy) {
+          model.error = error.message;
+          paint(false);
+        }
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }, 250);
 }
+app.addEventListener('pointerdown', () => clearTimeout(refreshTimer));
 window.addEventListener('offline', () => {
   model.offline = true;
   paint(false);

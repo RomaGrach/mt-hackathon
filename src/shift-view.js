@@ -1,3 +1,4 @@
+import { designShift, designHud } from './design002-view.js';
 import { wagonMap, incidentTone, incidentNavigation } from './wagon-view.js';
 import { renderShift as renderPrototype } from './prototype-shift-view.js';
 import { esc, heading } from './ui.js';
@@ -28,6 +29,7 @@ const simpleCommands = new Set([
 export function commandFor(action) {
   if (!action || action.available === false) throw new Error('Действие недоступно.');
   const type = action.command;
+  if (type === 'task') return { type, taskId: action.taskId };
   if (simpleCommands.has(type)) return { type };
   if (type === 'focus') return { type, incidentId: action.incidentId };
   if (type === 'inspect') return { type, zoneId: action.zoneId, actionId: action.actionId };
@@ -71,6 +73,7 @@ function actionButton(a, i) {
   return `<button type="button" class="${['choose', 'begin', 'continue', 'resume', 'finish'].includes(a.command) ? 'option' : 'outline-button'}" data-command="${esc(a.command)}" data-shift-action="${i}" ${a.command === 'focus' ? `data-focus-incident="${esc(a.incidentId)}"` : ''} ${a.available === false ? 'disabled aria-disabled="true"' : ''}><span class="action-icon" aria-hidden="true">${icons[a.command] || '→'}</span><span class="option-copy"><strong>${esc(a.label)}</strong>${a.unavailableReason ? `<small>${esc(a.unavailableReason)}</small>` : ''}</span>${a.durationSeconds > 0 ? `<span class="action-duration">◷ ${durationLabel(a.durationSeconds)}</span>` : ''}</button>`;
 }
 export function shiftHud(run) {
+  if (run.engineVersion === 'shift-4') return designHud(run);
   const meter = (key, label) =>
     `<div class="compact-meter ${key}" aria-label="${label}: ${run.scales?.[key] ?? 0} из 100"><span>${label} <b>${run.scales?.[key] ?? 0}</b></span><progress max="100" value="${run.scales?.[key] ?? 0}"></progress></div>`;
   const w = run.criticalWindow;
@@ -90,7 +93,8 @@ export const tutorialContent = `<div class="tutorial-steps"><article><b>1</b><di
 export function sheet(id, title, content) {
   return `<dialog class="game-sheet" id="sheet-${id}" aria-labelledby="sheet-title-${id}"><header><h2 id="sheet-title-${id}">${title}</h2><button class="sheet-close" data-close-sheet aria-label="Закрыть">×</button></header><div class="sheet-body">${content}</div></dialog>`;
 }
-export function renderShift(run, { prototype = false, embedded = false } = {}) {
+export function renderShift(run, { prototype = false, embedded = false, ui = {} } = {}) {
+  if (run?.engineVersion === 'shift-4') return designShift(run, ui);
   if (prototype) return renderPrototype(run, { prototype, embedded });
   if (!run)
     return '<section class="reading-column"><h1 tabindex="-1">Открываем смену…</h1></section>';

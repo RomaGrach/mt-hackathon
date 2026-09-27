@@ -9,6 +9,8 @@ import { Service } from './service.js';
 import { siteAdminAccess, adminUsers } from './admin.js';
 
 const PUBLIC = new Map([
+  ['/src/carriage-layouts.js', ['src/carriage-layouts.js', 'text/javascript']],
+  ['/src/design002-view.js', ['src/design002-view.js', 'text/javascript']],
   ['/', ['index.html', 'text/html']],
   ['/index.html', ['index.html', 'text/html']],
   ['/styles.css', ['styles.css', 'text/css']],
@@ -174,7 +176,7 @@ export function createApp({
       if (!pathname.startsWith('/api/')) error('NOT_FOUND', 'Ресурс не найден', 404);
       if (pathname === '/api/health' && method === 'GET') {
         store.get('SELECT 1');
-        send(res, 200, { status: 'ok', version: '2.1.0', storage: 'sqlite' });
+        send(res, 200, { status: 'ok', version: '4.0.0', engine: 'shift-4', storage: 'sqlite' });
         return;
       }
       if (pathname.startsWith('/api/admin/')) {
@@ -249,6 +251,19 @@ export function createApp({
       if (pathname.startsWith('/api/v2/')) {
         const v2 = service.shifts;
         const reply = (out) => send(res, out.status, out.body);
+        if (pathname === '/api/v2/competency/leaderboard' && method === 'GET') {
+          send(
+            res,
+            200,
+            v2.competencyLeaders(
+              profileId,
+              url.searchParams.get('scope') || 'company',
+              integer(url.searchParams.get('offset'), 0, 10000),
+              integer(url.searchParams.get('limit'), 50, 50)
+            )
+          );
+          return;
+        }
         if (pathname === '/api/v2/catalog' && method === 'GET') {
           send(res, 200, { items: v2.catalog() });
           return;

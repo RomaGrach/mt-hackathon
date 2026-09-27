@@ -104,6 +104,7 @@ export class Service {
     return {
       profile,
       motivation,
+      competency: this.shifts.competencyView(profileId),
       shiftCatalog: this.shifts.catalog(),
       catalog: catalogCards(),
       crews: CREWS,

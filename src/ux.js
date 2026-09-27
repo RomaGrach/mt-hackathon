@@ -1,3 +1,4 @@
+import { designHome } from './design002-view.js';
 import { esc, button, heading, scales, note } from './ui.js';
 import { shiftHud, sheet, tutorialContent } from './shift-view.js';
 import { shiftHome } from './motivation-view.js';
@@ -15,31 +16,24 @@ export function roleLanding(model) {
 }
 
 export function shell(content, model) {
-  const unreadNotices = model.boot.notices.filter((n) => !n.readAt);
-  const unread = unreadNotices.length;
-  const noticePreview = unreadNotices
-    .slice(0, 2)
-    .map((n) => n.title)
-    .join(' · ');
   const items = [
     ['home', 'Моя смена'],
-    ['profile', 'Навыки и профиль'],
+    ['profile', 'Мой прогресс'],
     ['leaderboard', 'Рейтинг'],
-    ['notices', 'Уведомления'],
   ];
   const menuItems = items
-    .map(([id, label]) => {
-      const isNotices = id === 'notices';
-      const accessibleLabel =
-        isNotices && unread ? `${label}, непрочитано: ${unread}. ${noticePreview}` : label;
-      return `<button class="nav-item ${isNotices ? 'nav-item-notices' : ''} ${model.view === id ? 'active' : ''}" data-action="nav" data-view="${id}" aria-label="${esc(accessibleLabel)}" ${model.view === id ? 'aria-current="page"' : ''}><span class="nav-item-main"><span>${label}</span>${isNotices && unread ? `<span class="notice-count" aria-hidden="true">${unread}</span>` : ''}</span>${isNotices && unread ? `<small class="nav-item-preview">${esc(noticePreview)}${unread > 2 ? ` · ещё ${unread - 2}` : ''}</small>` : ''}</button>`;
-    })
+    .map(
+      ([id, label]) =>
+        `<button class="nav-item ${model.view === id ? 'active' : ''}" data-action="nav" data-view="${id}" aria-label="${label}" ${model.view === id ? 'aria-current="page"' : ''}><span>${label}</span></button>`
+    )
     .join('');
-  const menu = `<details class="site-menu" data-disclosure="menu"><summary>☰ Меню${unread ? `<span class="notice-count" aria-label="Непрочитанных уведомлений: ${unread}">${unread}</span>` : ''}</summary><nav aria-label="Главное меню">${menuItems}</nav></details>`;
+  const menu = `<details class="site-menu" data-disclosure="menu"><summary>☰ Меню</summary><nav aria-label="Главное меню">${menuItems}</nav></details>`;
   return `<div class="app-shell ${model.view === 'run' ? 'playing-shell' : 'hub-shell'}"><header class="app-header ${model.view === 'run' ? 'game-header' : ''}">${model.view === 'run' ? '' : brand}${model.view === 'run' && model.run?.schemaVersion === 2 ? shiftHud(model.run) : ''}${model.view === 'run' && model.run?.schemaVersion === 2 ? '' : menu}</header><div class="workspace"><main id="main">${content}</main></div></div>`;
 }
 
 export function home(model) {
+  if (model.boot.competency && model.boot.shiftCatalog?.some((c) => c.engineVersion === 'shift-4'))
+    return designHome(model);
   if (model.boot.motivation) return shiftHome(model);
   const { boot: b, run } = model;
   const p = b.profile;
