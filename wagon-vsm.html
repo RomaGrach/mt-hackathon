@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#102b3d">
+  <meta name="description" content="Четыре интерактивные карты классов вагонов ВСМ в мобильном игровом интерфейсе.">
+  <title>Четыре вагона ВСМ · РЕЙС 400</title>
+  <style>
+    :root { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; background:#eaf1f4; color:#163344; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:320px; }
+    button { font:inherit; cursor:pointer; }
+    button:focus-visible,a:focus-visible { outline:3px solid #ebaf4f; outline-offset:3px; }
+    .top { background:#102b3d; color:#fff; border-bottom:3px solid #e9ad56; }
+    .top-inner { max-width:1560px; margin:auto; padding:15px clamp(16px,3vw,35px); display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+    .brand { font-weight:850; letter-spacing:.07em; font-size:14px; }
+    .top a { color:#d4e9f0; text-underline-offset:3px; font-size:14px; }
+    main { max-width:1580px; margin:auto; padding:24px clamp(13px,2.5vw,32px) 52px; }
+    .heading { margin:0 0 20px; display:flex; gap:12px; align-items:end; justify-content:space-between; flex-wrap:wrap; }
+    h1 { font-size:clamp(24px,3vw,36px); line-height:1.12; letter-spacing:-.035em; margin:0 0 7px; }
+    .heading p { font-size:15px; color:#4c6574; line-height:1.45; margin:0; max-width:760px; }
+    .key { display:flex; flex-wrap:wrap; gap:13px; color:#476473; font-size:13px; }
+    .key span { display:flex; align-items:center; gap:6px; }
+    .key i { display:inline-block; height:11px; width:11px; border-radius:50%; background:#b54434; }
+    .key .blue { background:#126b94; }
+    .phones { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:17px; align-items:start; }
+    .concept { min-width:0; }
+    .concept-head { min-height:60px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 3px 10px; }
+    .concept-head h2 { font-size:18px; margin:0; }
+    .concept-head small { display:block; margin-top:4px; font-size:13px; color:#597485; }
+    .class-tag { flex:none; background:#d9ecef; color:#166681; font-weight:800; padding:7px 9px; border-radius:9px; font-size:13px; }
+    .phone { margin:0 auto; width:min(100%,355px); height:734px; border:3px solid #18354a; padding:6px; border-radius:40px; background:#193246; box-shadow:0 16px 30px #1c3f5535; }
+    .screen { background:#f6fafb; height:100%; border-radius:30px; overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:80px; height:14px; border-radius:0 0 10px 10px; background:#193246; z-index:2; }
+    .status { padding:6px 21px 3px; flex:none; display:flex; justify-content:space-between; height:27px; background:white; font-size:11px; font-weight:800; }
+    .hud { padding:9px 13px 10px; display:flex; align-items:center; gap:10px; background:#fff; border-bottom:1px solid #d9e6eb; flex:none; }
+    .time { border-right:1px solid #d9e6eb; padding-right:9px; }
+    .time small { display:block; color:#617b8b; font-size:11px; }
+    .time b { font-size:18px; font-variant-numeric:tabular-nums; }
+    .meters { flex:1; display:grid; gap:6px; min-width:0; }
+    .meter { display:grid; grid-template-columns:74px minmax(0,1fr) 20px; align-items:center; gap:5px; color:#456475; font-size:10px; }
+    .meter b { font-variant-numeric:tabular-nums; text-align:right; }
+    .bar { height:7px; border-radius:8px; background:#dce9ec; overflow:hidden; }
+    .bar::before { content:""; display:block; height:100%; width:78%; background:#179caa; border-radius:8px; }
+    .meter.safety .bar::before { width:82%; background:#d79c40; }
+    .screen-title { display:flex; align-items:baseline; justify-content:space-between; padding:12px 16px 9px; gap:5px; flex:none; }
+    .screen-title strong { font-size:17px; }
+    .screen-title span { color:#607987; font-size:12px; }
+    .map-viewport { background:linear-gradient(90deg,#f0f6f7,#fff 35%,#fff 65%,#f0f6f7); border-top:1px solid #e1ecef; border-bottom:1px solid #e1ecef; min-height:0; flex:1; overflow-y:auto; overscroll-behavior:contain; padding:8px 10px 12px; scrollbar-width:thin; }
+    .map-viewport.centered { display:flex; justify-content:center; align-items:center; }
+    .wagon { width:min(232px,100%); margin:auto; padding:7px 11px; border:3px solid #24495c; border-radius:32px 32px 18px 18px; background:#fff; box-shadow:0 8px 20px #1b465521; }
+    .wagon.first { border-radius:80px 80px 18px 18px; padding-top:13px; }
+    .wagon-entry,.wagon-end { display:flex; justify-content:space-around; align-items:center; text-align:center; border-radius:15px 15px 5px 5px; min-height:27px; padding:5px 3px; background:#dbeaf0; color:#356174; font-size:10px; font-weight:780; line-height:1.2; }
+    .wagon-entry.first { min-height:41px; padding-top:9px; border-radius:75px 75px 5px 5px; background:#c6dce4; }
+    .wagon-end { border-radius:5px 5px 13px 13px; margin-top:5px; }
+    .zone-label { display:flex; gap:4px; align-items:center; justify-content:space-between; padding:5px 2px 3px; margin:3px 0 2px; border-bottom:1px dotted #b7cad2; color:#4c7586; font-size:10px; font-weight:800; }
+    .private-areas { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin:6px 1px; }
+    .private-areas span { display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:43px; border:1px solid #a4c4d0; border-radius:7px; background:#e9f3f5; color:#2b5d71; text-align:center; font-size:10px; font-weight:800; }
+    .private-areas small { font-size:9px; font-weight:600; margin-top:2px; }
+    .seat-row { display:grid; grid-template-columns:repeat(var(--left),minmax(0,1fr)) 23px repeat(var(--right),minmax(0,1fr)); gap:3px; align-items:center; margin:2px 1px; }
+    .wagon:not(.first) .seat-row { margin:1px 1px; }
+    .seat { height:18px; position:relative; display:grid; place-items:center; border:1px solid #9cbcc9; border-bottom:3px solid #78a2b4; border-radius:5px 5px 6px 6px; background:#d9ebef; }
+    .wagon:not(.first) .seat,.wagon:not(.first) .aisle,.wagon:not(.first) .play-area { height:13px; }
+    .seat.first-seat { height:24px; border-color:#b89f79; border-bottom-color:#b89f79; background:#f1e9d8; }
+    .aisle { display:grid; place-items:center; height:18px; border-inline:1px dashed #bbd0d7; color:#b2c6cc; font-size:9px; }
+    .play-area { grid-column:span var(--left); align-self:stretch; display:grid; place-items:center; height:18px; border-radius:5px; background:#d7e9d6; border:1px solid #9bbea0; font-size:9px; font-weight:800; color:#397044; }
+    .marker { position:relative; display:grid; place-items:center; width:27px; height:27px; margin:-5px 0; border:2px solid #fff; background:#126b94; color:#fff; border-radius:50%; font-size:12px; font-weight:900; box-shadow:0 2px 5px #14344266; z-index:1; }
+    .marker.urgent { background:#b54434; }
+    .marker[aria-pressed="true"] { outline:3px solid #183e50; outline-offset:2px; }
+    .details { flex:none; padding:11px 14px; background:#fff; border-top:1px solid #dfebed; min-height:94px; }
+    .details strong { display:block; font-size:14px; }
+    .details p { margin:4px 0 0; color:#547080; font-size:12px; line-height:1.35; }
+    .details .spec { font-weight:800; font-size:12px; color:#187186; margin-top:6px; }
+    .dock { flex:none; display:grid; grid-template-columns:repeat(3,1fr); background:#fff; border-top:1px solid #d8e7e9; height:56px; }
+    .dock span { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:2px; color:#627986; font-size:11px; }
+    .dock .selected { background:#eaf6f7; color:#126c88; font-weight:800; }
+    .dock b { font-size:17px; line-height:17px; }
+    .home { align-self:center; flex:none; height:4px; width:90px; margin:6px 0; border-radius:5px; background:#193748; }
+    .source-note { margin:18px 2px 0; max-width:1050px; font-size:14px; line-height:1.5; color:#4e6877; }
+    .source-note a { color:#146c88; }
+    @media (max-width:1270px) { .phones { grid-template-columns:repeat(2,minmax(0,1fr)); max-width:770px; margin:auto; } }
+    @media (max-width:760px) {
+      main { padding-top:18px; }
+      .heading { margin-bottom:16px; }
+      .phones { display:flex; overflow-x:auto; overscroll-behavior-x:contain; scroll-snap-type:x mandatory; scroll-padding-inline:13px; gap:14px; padding:0 13px 18px; margin:0 -13px; scrollbar-width:thin; }
+      .concept { flex:0 0 min(355px,calc(100vw - 30px)); scroll-snap-align:center; }
+      .phone { height:min(734px,calc(100svh - 140px)); min-height:545px; }
+      .key { gap:10px; }
+    }
+  </style>
+  <script src="/wagon-vsm.js" defer></script>
+</head>
+<body>
+  <header class="top"><div class="top-inner"><span class="brand">РЕЙС 400 · ВАГОНЫ ВСМ</span><a href="/">К игре ↗</a></div></header>
+  <main>
+    <div class="heading"><div><h1>Четыре вагона в игровом экране</h1><p>Кресла и зоны нарисованы по планировкам из материалов проекта. На телефоне листайте вагоны вбок и нажимайте метки событий.</p></div><div class="key" aria-label="Обозначения"><span><i></i>Внимание</span><span><i class="blue"></i>Обращение</span></div></div>
+    <section class="phones" id="phones" aria-label="Четыре класса вагонов ВСМ"></section>
+    <p class="source-note">Схемы перерисованы по материалам проекта в формате игровой карты. Показаны компоновка кресел, служебные и отдельные зоны. Положение игровых событий демонстрационное; официальная нумерация мест на исходном слайде отсутствует. Для комфорта показан вариант вагона с игровой комнатой, для стандарта — пассажирский вагон без бистро.</p>
+  </main>
+</body>
+</html>

@@ -2186,3 +2186,158 @@ export const v2Paths = {
     },
   },
 };
+
+// Design 002 shares the v2 transport and pins a separate runtime/content version.
+v2Schemas.ShiftCommand.oneOf.push({
+  type: 'object',
+  properties: {
+    type: { const: 'task' },
+    taskId: { type: 'string', pattern: '^[a-zA-Z0-9-]{1,100}$' },
+  },
+  required: ['type', 'taskId'],
+  additionalProperties: false,
+});
+v2Schemas.ShiftAction.properties.command.enum.push('task');
+Object.assign(v2Schemas.ShiftAction.properties, {
+  taskId: { type: 'string' },
+  cost: { type: 'integer', enum: [0, 1] },
+  available: { type: 'boolean' },
+  unavailableReason: { type: ['string', 'null'] },
+});
+v2Schemas.LegacyShiftPublic = v2Schemas.ShiftPublic;
+v2Schemas.LegacyShiftPublic.properties.engineVersion = { enum: ['shift-2', 'shift-3'] };
+v2Schemas.LegacyShiftResult = v2Schemas.ShiftResult;
+v2Schemas.Design002Result = {
+  type: 'object',
+  required: [
+    'schemaVersion',
+    'engineVersion',
+    'runId',
+    'fact',
+    'max',
+    'shiftScore',
+    'competencyGain',
+    'problems',
+    'tasks',
+    'history',
+    'scales',
+  ],
+  properties: {
+    schemaVersion: { const: 2 },
+    engineVersion: { const: 'shift-4' },
+    runId: { type: 'string', format: 'uuid' },
+    fact: { type: 'integer', minimum: 0 },
+    max: { type: 'integer', minimum: 0 },
+    shiftScore: { type: 'number', minimum: 0, maximum: 100 },
+    competencyGain: { type: 'number', minimum: 0, maximum: 100 },
+    problems: { type: 'array', items: { type: 'object' } },
+    tasks: { type: 'array', items: { type: 'object' } },
+    history: { type: 'array', items: { type: 'object' } },
+    scales: { $ref: '#/components/schemas/ShiftScales' },
+  },
+  additionalProperties: true,
+};
+v2Schemas.Design002Public = {
+  type: 'object',
+  required: [
+    'schemaVersion',
+    'engineVersion',
+    'id',
+    'phase',
+    'revision',
+    'step',
+    'totalTurns',
+    'actions',
+    'incidents',
+    'tasks',
+    'log',
+    'result',
+  ],
+  properties: {
+    schemaVersion: { const: 2 },
+    engineVersion: { const: 'shift-4' },
+    id: { type: 'string', format: 'uuid' },
+    phase: { enum: ['briefing', 'overview', 'scene', 'result'] },
+    revision: { type: 'integer', minimum: 0 },
+    step: { type: 'integer', minimum: 0 },
+    totalTurns: { type: 'integer', minimum: 1 },
+    actions: { type: 'array', items: { $ref: '#/components/schemas/ShiftAction' } },
+    incidents: { type: 'array', items: { type: 'object' } },
+    tasks: { type: 'array', items: { type: 'object' } },
+    log: { type: 'array', items: { type: 'object' } },
+    result: { anyOf: [{ type: 'null' }, { $ref: '#/components/schemas/Design002Result' }] },
+  },
+  additionalProperties: true,
+};
+v2Schemas.ShiftPublic = {
+  oneOf: [
+    { $ref: '#/components/schemas/LegacyShiftPublic' },
+    { $ref: '#/components/schemas/Design002Public' },
+  ],
+};
+v2Schemas.ShiftResult = {
+  oneOf: [
+    { $ref: '#/components/schemas/LegacyShiftResult' },
+    { $ref: '#/components/schemas/Design002Result' },
+  ],
+};
+v2Paths['/api/v2/competency/leaderboard'] = {
+  get: {
+    summary: 'Cumulative Design 002 competency scores; every completed shift contributes once',
+    parameters: [
+      {
+        in: 'query',
+        name: 'scope',
+        schema: {
+          enum: ['crew', 'depot', 'company'],
+          default: 'company',
+        },
+      },
+      {
+        in: 'query',
+        name: 'offset',
+        schema: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 10000,
+        },
+      },
+      {
+        in: 'query',
+        name: 'limit',
+        schema: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 50,
+        },
+      },
+    ],
+    responses: {
+      200: {
+        description: 'Cumulative rating without credentials or private state',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['rows', 'total', 'myRank'],
+              properties: {
+                rows: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                  },
+                },
+                total: {
+                  type: 'integer',
+                },
+                myRank: {
+                  type: 'integer',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};

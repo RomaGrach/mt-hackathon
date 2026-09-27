@@ -2228,3 +2228,103 @@ button:disabled { opacity: .78; cursor: wait; }
  .playing-shell .shift-stage:has(.dialogue-scene) .page-heading h1 { font-size:22px; }
  .dialogue-scene .previous-line { font-size:13px; margin-bottom:10px; }
 }
+
+/* Design 002: one fixed HUD, independent screens, no nested cards or popups. */
+.d2-console {height:calc(100dvh - 62px);display:flex;flex-direction:column;position:relative;max-width:850px;margin:auto;}
+.d2-console .d2-pane {flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:22px 20px 18px;scrollbar-width:thin;}
+.d2-console [hidden] {display:none!important;}
+.playing-shell:has(.d2-console) .workspace {padding:0;}
+.d2-pane h1,.d2-results h1 {font-size:26px;line-height:1.2;margin:0 0 18px;}
+.d2-pane h2 {font-size:19px;margin:0 0 8px;}
+.d2-lead {font-size:18px;line-height:1.65;max-width:65ch;}
+.d2-caption {font-size:13px;color:#53647a;line-height:1.5;}
+.d2-rules {padding-left:21px;line-height:1.6;}
+.d2-rules li {margin:12px 0;}
+.d2-clock {min-width:75px;display:grid;gap:2px;}
+.d2-clock strong {font-size:19px;line-height:1.1;}
+.d2-clock progress {width:85px;height:4px;accent-color:#637dba;}
+.d2-action {display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:13px 15px;border:1px solid #c4d4e3;border-radius:12px;background:#fff;color:#1e3454;text-align:left;font-size:15px;line-height:1.45;box-shadow:none;white-space:normal;}
+.d2-action small {display:block;color:#607389;font-size:12px;}
+.d2-action .d2-cost {flex:0 0 auto;white-space:nowrap;}
+.d2-action:hover:not(:disabled) {border-color:#5178b0;background:#f1f6fc;transform:none;}
+.d2-action:disabled {opacity:.55;}
+.d2-primary-actions {display:grid;gap:10px;margin-top:20px;}
+.d2-tabs {flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);background:#fff;border-top:1px solid #d4deea;padding:5px 8px calc(5px + env(safe-area-inset-bottom));gap:3px;}
+.d2-tabs button {display:grid;justify-items:center;gap:2px;min-height:52px;background:transparent;border:0;border-radius:10px;color:#56677d;padding:5px 0;box-shadow:none;}
+.d2-tabs button>span {font-size:20px;line-height:1.2;}
+.d2-tabs button>small {font-size:11px;}
+.d2-tabs [aria-current] {background:#e8effa;color:#214f94;}
+.d2-case {display:flex;gap:12px;align-items:flex-start;width:100%;padding:17px 0;border:0;border-bottom:1px solid #d5e0ea;background:transparent;text-align:left;box-shadow:none;color:#20334c;}
+.d2-case>span:nth-child(2) {flex:1;min-width:0;display:grid;gap:5px;}
+.d2-case small {color:#5a6c82;font-size:12px;}
+.d2-case strong {font-size:17px;line-height:1.35;}
+.d2-case>span:nth-child(2)>span {font-size:14px;line-height:1.5;}
+.d2-case-dot {color:#3867a2;margin-top:23px;}
+.d2-recent {border-left:3px solid #8ba7c5;padding-left:12px;color:#526780;font-size:13px;line-height:1.5;margin-top:24px;}
+.d2-notice {padding:12px 14px;background:#e9f0f9;border-left:3px solid #4d75b1;line-height:1.5;}
+.d2-console .d2-dialogue {display:flex;flex-direction:column;overflow:hidden;}
+.d2-dialogue .d2-scene-text {flex:1;min-height:80px;overflow-y:auto;}
+.d2-speaker {font-size:13px;font-weight:700;color:#4d688a;margin:18px 0 5px;}
+.d2-console .d2-choices {display:grid;gap:8px;flex:0 1 auto;max-height:58%;overflow-y:auto;margin-top:14px;}
+.d2-console .d2-choices .d2-action {padding:12px 14px;min-height:48px;border-radius:12px;font-size:15px;}
+.d2-task {border-bottom:1px solid #d4deea;padding:18px 0;}
+.d2-task p {font-size:14px;color:#53677d;line-height:1.5;}
+.d2-task>small {color:#56728b;}
+.d2-log {padding:0;list-style:none;}
+.d2-log li {padding:16px 0;border-bottom:1px solid #d4deea;}
+.d2-log h3 {font-size:16px;margin:5px 0;}
+.d2-log p {font-size:14px;line-height:1.5;margin:6px 0;}
+.d2-log small {font-size:12px;color:#5b6e82;display:block;}
+.d2-carriage {max-width:330px;margin:18px auto;border:2px solid #99aec7;border-radius:32px;background:#eaf0f6;padding:12px 13px;}
+.d2-vestibule {font-size:12px;text-align:center;padding:12px 0;color:#4c617c;}
+.d2-seat-row {display:grid;grid-template-columns:repeat(var(--d2-cols),minmax(0,1fr));gap:5px;margin:7px 0;}
+.d2-seat {height:38px;min-width:0;border:1px solid #9aaec6;border-bottom:4px solid #9aaec6;border-radius:7px 7px 4px 4px;background:#fff;color:#354b6a;padding:0;font-size:13px;position:relative;opacity:1;}
+.d2-seat:disabled {opacity:1;cursor:default;}
+.d2-seat.d2-empty {background:transparent;color:#778aa3;border-color:#c6d2df;}
+.d2-seat.d2-marked {background:#d9e7ff;border-color:#4b76b2;font-weight:700;}
+.d2-seat span {position:absolute;right:-3px;top:-7px;color:#3865a7;font-size:13px;}
+.d2-aisle {align-self:center;text-align:center;font-size:10px;color:#8797a8;}
+.d2-exit,.d2-settings {margin-top:28px;border-top:1px solid #d4deea;padding-top:18px;}
+.d2-exit summary,.d2-settings summary {cursor:pointer;font-weight:600;padding:12px 0;}
+.d2-results {max-width:760px;margin:auto;padding:26px 20px 50px;}
+.d2-score {display:flex;align-items:center;gap:24px;margin:22px 0;}
+.d2-score>strong {font-size:50px;color:#244e7e;letter-spacing:-2px;}
+.d2-score small {font-size:20px;color:#617891;letter-spacing:0;}
+.d2-score>span {font-size:14px;line-height:1.7;color:#49657a;}
+.d2-result-summary {display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:18px 0;border-top:1px solid #d4deea;border-bottom:1px solid #d4deea;}
+.d2-result-summary span {display:flex;justify-content:space-between;font-size:14px;gap:10px;}
+.d2-result-nav {display:flex;gap:12px;margin:22px 0;flex-wrap:wrap;}
+.d2-review {padding:18px 0;border-bottom:1px solid #d4deea;}
+.d2-review header {display:flex;justify-content:space-between;align-items:baseline;gap:15px;}
+.d2-review h3 {font-size:17px;margin:0 0 7px;}
+.d2-review p {font-size:14px;line-height:1.6;margin:8px 0;}
+.d2-review small {color:#5c7087;}
+.d2-alternative {color:#365e77;}
+.d2-home,.d2-profile {max-width:780px;}
+.d2-home-head {display:flex;justify-content:space-between;align-items:center;gap:20px;}
+.d2-home h1,.d2-profile h1 {font-size:32px;margin:5px 0 22px;}
+.d2-profile-link {border:0;background:transparent;text-align:right;color:#496b91;display:grid;gap:3px;}
+.d2-profile-link b {font-size:23px;}
+.d2-profile-link small {font-size:11px;max-width:125px;}
+.d2-next {padding:24px;background:#e8eff8;border-radius:18px;margin:14px 0 22px;}
+.d2-next h2 {font-size:24px;margin:8px 0;}
+.d2-next p {color:#486079;line-height:1.5;}
+.d2-course-title {display:flex;justify-content:space-between;align-items:center;margin-top:22px;}
+.d2-course-title h2 {font-size:20px;}
+.d2-course {list-style:none;padding:0;}
+.d2-course li {display:flex;gap:14px;align-items:center;padding:17px 10px;border-bottom:1px solid #d4deea;}
+.d2-course li>div {flex:1;min-width:0;}
+.d2-course h3 {font-size:16px;margin:0 0 5px;}
+.d2-course small {font-size:12px;color:#597188;}
+.d2-course button {padding:10px 12px;min-height:44px;font-size:13px;}
+.d2-current {background:#ecf3fc;border-radius:10px;}
+.d2-number {color:#496e9a;min-width:22px;text-align:center;font-weight:700;}
+.d2-custom {display:grid;gap:18px;max-width:500px;margin-top:20px;}
+.d2-custom label {display:grid;gap:7px;font-size:14px;}
+.d2-learn {margin:24px 0;border-top:1px solid #d4deea;padding-top:18px;}
+.d2-history {display:flex;justify-content:space-between;gap:16px;align-items:center;padding:18px 8px;width:100%;border:0;border-bottom:1px solid #d4deea;background:transparent;text-align:left;color:#243b56;box-shadow:none;}
+.d2-history small {display:block;font-size:12px;color:#62758b;margin-top:6px;}
+.d2-profile>progress {width:100%;accent-color:#527ca6;}
+.d2-settings button {margin:8px 0;}
+@media(max-width:400px) {.d2-console .d2-pane{padding:17px 14px}.d2-pane h1{font-size:23px}.d2-lead{font-size:16px}.d2-home-head{gap:10px}.d2-course li{gap:8px;padding:14px 4px}.d2-course h3{font-size:14px}.d2-score{gap:16px}.d2-score>strong{font-size:40px}.d2-score>span{font-size:12px}.playing-shell .game-header:has(.d2-clock){padding:8px 12px;gap:12px}}
+@media(max-height:560px) {.d2-console .d2-dialogue{display:block;overflow-y:auto}.d2-dialogue .d2-scene-text{overflow:visible}.d2-console .d2-choices{max-height:none;overflow:visible}}

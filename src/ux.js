@@ -1,8 +1,10 @@
+import { designHome } from './design002-view.js';
 import { esc, button, heading, scales, note } from './ui.js';
 import { shiftHud, sheet, tutorialContent } from './shift-view.js';
 import { shiftHome } from './motivation-view.js';
 
-const brand = '<button type="button" class="wordmark brand-button" data-action="nav" data-view="landing" aria-label="На стартовый экран">РЕЙС <b>400</b></button>';
+const brand =
+  '<button type="button" class="wordmark brand-button" data-action="nav" data-view="landing" aria-label="На стартовый экран">РЕЙС <b>400</b></button>';
 const brandStatic = '<span class="wordmark">РЕЙС <b>400</b></span>';
 
 export function welcome() {
@@ -17,7 +19,7 @@ export function shell(content, model) {
   const unread = model.boot.notices.filter((n) => !n.readAt).length;
   const items = [
     ['home', 'Моя смена'],
-    ['profile', 'Навыки и профиль'],
+    ['profile', 'Мой прогресс'],
     ['leaderboard', 'Рейтинг'],
     ['notices', 'Уведомления'],
   ];
@@ -25,6 +27,8 @@ export function shell(content, model) {
 }
 
 export function home(model) {
+  if (model.boot.competency && model.boot.shiftCatalog?.some((c) => c.engineVersion === 'shift-4'))
+    return designHome(model);
   if (model.boot.motivation) return shiftHome(model);
   const { boot: b, run } = model;
   const p = b.profile;

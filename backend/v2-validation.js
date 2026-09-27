@@ -23,6 +23,7 @@ export function requestKey(id) {
 export function validateCommand(command) {
   const fields = {
     begin: [],
+    task: ['taskId'],
     continue: [],
     overview: [],
     pause: [],

@@ -6,6 +6,12 @@ import { resolve } from 'node:path';
 const files = [
   'index.html',
   'preview.html',
+  'wagon-concepts.html',
+  'wagon-concepts.js',
+  'wagon-mobile.html',
+  'wagon-mobile.js',
+  'wagon-vsm.html',
+  'wagon-vsm.js',
   'styles.css',
   'src/app.js',
   'src/admin-view.js',

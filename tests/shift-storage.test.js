@@ -203,7 +203,14 @@ test('оператор: техническая компенсация до ра�
   );
   assert.equal(h.store.get('SELECT COUNT(*) n FROM technical_replacements').n, 1);
   setPublicationEnabled(h.store, SHIFT_CONTENT.id, SHIFT_CONTENT.version, false, h.now);
-  assert.equal(h.v2.catalog().length, 0);
+  assert.equal(
+    h.v2.catalog().some((c) => c.id === SHIFT_CONTENT.id),
+    false
+  );
+  assert.equal(
+    h.v2.catalog().some((c) => c.id === 'design002'),
+    true
+  );
   assert.equal(h.v2.exactReplay(h.profile, h.run.id).verified, true);
 });
 

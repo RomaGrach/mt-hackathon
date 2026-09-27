@@ -6,7 +6,7 @@ import { ShiftClient, SHIFT_PENDING_KEY } from './shift-client.js';
 const shiftClient = new ShiftClient();
 
 const app = document.querySelector('#app');
-const TUTORIAL_KEY = 'reis400.interface-tour.v1';
+const TUTORIAL_KEY = 'reis400.interface-tour.design002';
 let tutorialSeen = false;
 try {
   tutorialSeen = localStorage.getItem(TUTORIAL_KEY) === 'done';
@@ -307,6 +307,12 @@ async function navigate(view) {
   if (view === 'leaderboard') await loadRankings();
 }
 async function loadRankings() {
+  if (model.boot?.competency) {
+    model.competencyLeaders = await api(
+      '/v2/competency/leaderboard?scope=' + model.scope + '&offset=' + model.rankOffset
+    );
+    return;
+  }
   const period = model.rankPeriod ? '&periodId=' + encodeURIComponent(model.rankPeriod) : '';
   [model.leaders, model.motivationLeaders] = await Promise.all([
     api('/leaderboard?scope=' + model.scope),
@@ -351,8 +357,8 @@ const tourSteps = [
   [
     'scene',
     '.game-clock',
-    'Время смены',
-    'На часах — игровое время. Рабочее действие расходует столько времени, сколько указано на его кнопке.',
+    'Ходы смены',
+    'Задача или завершённый этап проблемы расходует один ход. Пока вы действуете, другие дела развиваются. Чтение не тратит ход.',
   ],
   [
     'scene',
@@ -368,7 +374,7 @@ const tourSteps = [
   ],
   [
     'scene',
-    '.shift-stage > .shift-actions',
+    '.shift-actions',
     'Действия',
     'Каждая кнопка — отдельное решение. Во время срочной ситуации появится таймер реального времени.',
   ],
@@ -382,13 +388,19 @@ const tourSteps = [
     'tasks',
     '[data-game-tab="tasks"]',
     'Задачи',
-    'Здесь видны все задачи, их сроки и результат. Переходы между вкладками не тратят игровое время.',
+    'Здесь рабочие обязанности и задачи, возникшие из решений. Каждая стоит один ход, но не даёт очков компетенций.',
+  ],
+  [
+    'log',
+    '[data-game-tab="log"]',
+    'История смены',
+    'Здесь появляются решения, новые задачи и последствия пропущенных дел. В конце смены сразу откроется полный разбор.',
   ],
   [
     'tools',
     '[data-game-tab="tools"]',
     'Управление',
-    'Здесь находятся подсказка, учебная пауза, выход на главную и прерывание смены. Срочный таймер работает, пока вы не включили паузу.',
+    'Здесь можно выйти на главную и вернуться позже. Реальный таймер начатой срочной ситуации продолжает идти.',
   ],
 ];
 function finishTutorial() {
@@ -708,7 +720,7 @@ app.addEventListener('submit', (event) => {
         mode: data.mode,
         timingPolicyId: data.timingPolicyId,
         serviceClass: data.serviceClass,
-        ...(data.mode === 'training' ? { variantId: data.variantId } : {}),
+        ...(data.variantId ? { variantId: data.variantId } : {}),
       });
     if (form === 'motivation-preferences') {
       await mutate('/v2/motivation/preferences', {

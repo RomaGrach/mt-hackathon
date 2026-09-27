@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#102b43" />
+    <title>Варианты вагона · РЕЙС 400</title>
+    <meta name="description" content="Три интерактивных варианта схемы учебного вагона для игры РЕЙС 400." />
+    <style>
+      :root { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color:#142d41; background:#edf3f7; font-synthesis:none; }
+      * { box-sizing:border-box; }
+      body { margin:0; min-width:320px; }
+      button, select { font:inherit; }
+      button { cursor:pointer; }
+      button:focus-visible, select:focus-visible { outline:3px solid #1c91b9; outline-offset:3px; }
+      [hidden] { display:none !important; }
+      .top { background:#102b43; color:#fff; border-bottom:3px solid #e7aa52; }
+      .top-in, main { max-width:1160px; margin:auto; padding-inline:clamp(16px,4vw,32px); }
+      .top-in { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; min-height:58px; }
+      .brand { font-weight:900; letter-spacing:.04em; font-size:18px; }
+      .top-note { color:#b9d5e3; font-size:14px; }
+      main { padding-block:22px 68px; }
+      .intro { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:end; gap:14px; margin-bottom:19px; }
+      h1 { font-size:clamp(26px,3.2vw,36px); margin:0 0 6px; line-height:1.12; letter-spacing:-.025em; }
+      .intro p { margin:0; color:#49657a; line-height:1.4; font-size:15px; max-width:680px; }
+      .class-select { display:flex; align-items:center; gap:9px; font-size:14px; font-weight:700; }
+      .class-select select { padding:10px 36px 10px 12px; color:#14354c; border:1px solid #bacbd6; border-radius:9px; background:#fff; min-height:44px; }
+      .switcher { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:17px; }
+      .switcher button { min-width:0; text-align:left; padding:14px 15px; border-radius:12px; border:2px solid #d5e2ea; background:#fff; color:#23455a; }
+      .switcher button[aria-selected="true"] { border-color:#007896; background:#e6f6f8; box-shadow:0 2px 0 #007896; }
+      .switcher b { display:block; font-size:16px; }
+      .switcher small { display:block; margin-top:3px; font-size:13px; color:#526c7b; line-height:1.25; }
+      .workbench { display:grid; grid-template-columns:minmax(0,1fr) 292px; gap:16px; align-items:start; }
+      .stage { min-width:0; background:#fff; border:1px solid #d5e2ea; border-radius:18px; overflow:hidden; box-shadow:0 8px 30px #16324a0a; }
+      .stage-heading { display:flex; justify-content:space-between; gap:16px; padding:20px 22px 16px; border-bottom:1px solid #e5edf2; }
+      .stage-heading h2 { margin:0 0 4px; font-size:21px; line-height:1.2; }
+      .stage-heading p { margin:0; color:#577084; font-size:14px; line-height:1.4; }
+      .stage-flag { align-self:start; white-space:nowrap; color:#155b73; background:#e4f3f4; padding:6px 9px; font-size:12px; font-weight:800; border-radius:7px; }
+      .canvas { background:radial-gradient(circle at 50% 24%,#f7fbfc,#e8f0f3); padding:22px clamp(12px,3vw,32px) 24px; min-height:520px; }
+      .side { background:#fff; border:1px solid #d5e2ea; border-radius:16px; padding:18px; box-shadow:0 8px 30px #16324a0a; }
+      .side h2 { margin:0 0 5px; font-size:19px; }
+      .side .hint { margin:0 0 15px; color:#526e81; font-size:14px; line-height:1.4; }
+      .event-list { display:grid; gap:8px; }
+      .event { width:100%; text-align:left; display:flex; align-items:start; gap:10px; background:#f6f9fb; border:1px solid #dbe6ec; border-radius:10px; padding:11px; color:#173a4e; min-height:58px; }
+      .event[aria-current="true"] { background:#e6f6f8; border-color:#00859b; }
+      .event strong { display:block; font-size:14px; line-height:1.3; }
+      .event small { display:block; color:#526d7c; font-size:12px; margin-top:3px; line-height:1.3; }
+      .pin { flex:none; display:inline-grid; place-items:center; width:25px; height:25px; border-radius:50%; font-size:12px; font-weight:900; color:#fff; background:#117995; box-shadow:0 0 0 3px #fff; }
+      .pin.urgent { background:#c25040; }
+      .pin.waiting { background:#a9681e; }
+      .reveal { width:100%; min-height:44px; margin-top:14px; border:1px solid #176d88; border-radius:9px; background:#fff; color:#15556b; font-weight:750; padding:10px; }
+      .reveal:disabled { border-color:#b8cdd5; color:#6a8390; cursor:default; }
+      .detail { margin-top:18px; padding-top:15px; border-top:1px solid #dce6eb; }
+      .detail-label { color:#647c89; text-transform:uppercase; letter-spacing:.07em; font-size:12px; font-weight:800; }
+      .detail h3 { margin:5px 0; font-size:19px; }
+      .detail p { margin:0; line-height:1.5; font-size:14px; color:#425d6d; }
+      .legend { display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; font-size:13px; padding:15px 20px 17px; border-top:1px solid #dce6eb; color:#496477; }
+      .legend span { display:flex; align-items:center; gap:7px; }
+      .legend .pin { width:16px; height:16px; font-size:9px; box-shadow:none; }
+      .smallprint { margin:15px 2px 0; max-width:830px; font-size:13px; color:#5a7483; line-height:1.5; }
+
+      /* Shared full-length plan. Each row corresponds to a different seat group. */
+      .coach { max-width:465px; margin:auto; border:4px solid #183f53; border-radius:70px 70px 38px 38px; background:#fff; box-shadow:0 10px 28px #1637471c; padding:12px 14px 16px; }
+      .coach-vestibule { display:flex; align-items:center; justify-content:center; text-align:center; min-height:44px; border-radius:35px 35px 10px 10px; background:#dce9ed; font-weight:800; font-size:13px; color:#32576b; }
+      .coach-vestibule.last { margin-top:8px; border-radius:9px 9px 22px 22px; min-height:35px; }
+      .coach-service { display:flex; justify-content:space-around; align-items:center; gap:8px; min-height:47px; margin:8px 0 4px; font-size:12px; color:#3f6372; }
+      .coach-service span { background:#e9f3f4; padding:7px 9px; border-radius:8px; }
+      .coach-row { --left:3; --right:2; display:grid; grid-template-columns:repeat(var(--left),minmax(0,1fr)) minmax(29px,1.3fr) repeat(var(--right),minmax(0,1fr)); align-items:center; gap:4px; padding:2px 0; }
+      .seat, .walkway { min-width:0; height:27px; display:flex; align-items:center; justify-content:center; position:relative; }
+      .seat { border-radius:5px 5px 9px 9px; background:#dbe9ee; border:1px solid #b4cbd4; color:#355666; font-size:11px; font-weight:700; }
+      .walkway { color:#a1b5bf; font-size:10px; border-left:1px dashed #cfdee3; border-right:1px dashed #cfdee3; }
+      .seat .pin, .walkway .pin { position:absolute; width:26px; height:26px; font-size:12px; box-shadow:0 0 0 2px #fff; }
+      .seat.has-event { background:#e6f5f6; border-color:#4797a7; }
+      .coach-row.zone-start { margin-top:9px; border-top:1px dashed #9dbac4; padding-top:9px; }
+      .zone-line { display:flex; align-items:center; justify-content:space-between; margin:7px 0 4px; color:#597383; font-size:11px; font-weight:700; }
+      .zone-line:after { content:""; width:72%; border-top:1px dotted #aac2ca; }
+      .coach-key { text-align:center; font-size:12px; color:#536d7c; margin:10px 0 0; }
+
+      /* Option B shows the same complete coach as a spatial working surface. */
+      .spatial .coach { max-width:510px; padding:17px 19px 19px; border:7px solid #17354b; border-radius:90px 90px 45px 45px; background:linear-gradient(90deg,#f7f5ee 0%,#fff 14%,#fff 86%,#f7f5ee 100%); box-shadow:inset 0 0 0 4px #b7d5dc,0 15px 35px #18364b27; }
+      .spatial .coach-vestibule { background:#d1e8ed; border:2px solid #9fc3cb; }
+      .spatial .seat { height:35px; border:2px solid #7da9b7; border-bottom-width:4px; border-radius:7px 7px 11px 11px; background:#a5d2d9; color:#173e50; font-size:11px; }
+      .spatial .seat.has-event { background:#f3dcb6; border-color:#cc9651; }
+      .spatial .walkway { background:#e9e3d6; border:0; border-radius:4px; height:35px; color:#617c83; }
+      .spatial .coach-row { gap:5px; padding:3px 0; }
+      .spatial .coach-row.zone-start { margin-top:6px; padding-top:10px; }
+      .spatial .coach-service span { background:#d7eceb; color:#175667; }
+
+      /* Option C compresses the whole coach into zones; the chosen zone opens below. */
+      .zone-coach { max-width:510px; margin:auto; border:5px solid #173f54; border-radius:52px 52px 29px 29px; padding:12px; background:#f9fbfc; box-shadow:0 12px 28px #18354b19; }
+      .zone-head, .zone-foot { border-radius:22px 22px 6px 6px; background:#dcebee; text-align:center; padding:10px; color:#3a6170; font-size:13px; font-weight:800; }
+      .zone-foot { border-radius:6px 6px 17px 17px; margin-top:8px; }
+      .zone-stack { display:grid; gap:8px; padding-block:9px; }
+      .zone-card { width:100%; padding:13px 14px; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; text-align:left; background:#eef4f6; border:2px solid #cbdfe4; border-radius:12px; color:#244b5f; }
+      .zone-card[aria-current="true"] { border-color:#00849a; background:#e2f4f4; }
+      .zone-card strong { font-size:16px; }
+      .zone-card small { display:block; color:#5d7988; margin-top:4px; font-size:12px; }
+      .zone-dots { display:flex; align-items:center; gap:6px; min-width:27px; }
+      .zone-detail { max-width:510px; margin:12px auto 0; background:#fff; border:1px solid #bcd7de; border-radius:12px; padding:13px 15px 15px; }
+      .zone-detail h3 { margin:0 0 4px; font-size:16px; }
+      .zone-detail p { margin:0 0 10px; color:#526d7e; font-size:13px; }
+      .zone-detail .coach-row { max-width:320px; margin:auto; }
+      .zone-detail .seat { height:28px; }
+
+      @media (max-width:840px) {
+        .workbench { grid-template-columns:1fr; }
+        .side { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 18px; }
+        .side h2, .side .hint, .event-list { grid-column:1; }
+        .reveal, .detail { grid-column:2; }
+        .detail { margin-top:0; padding-top:0; border:0; }
+        .reveal { align-self:end; }
+      }
+      @media (max-width:570px) {
+        .top-in { min-height:52px; }
+        .top-note { font-size:12px; }
+        main { padding-top:15px; }
+        .intro { align-items:start; }
+        .class-select { width:100%; justify-content:space-between; }
+        .class-select select { flex:1; max-width:230px; }
+        .switcher { gap:5px; }
+        .switcher button { text-align:center; padding:10px 3px; }
+        .switcher b { font-size:14px; }
+        .switcher small { display:none; }
+        .stage-heading { padding:15px; }
+        .stage-heading h2 { font-size:19px; }
+        .stage-flag { display:none; }
+        .canvas { padding:15px 9px 20px; min-height:440px; }
+        .coach { padding-inline:8px; }
+        .coach-row { gap:3px; }
+        .spatial .coach { padding-inline:11px; }
+        .spatial .coach-row { gap:3px; }
+        .seat { font-size:10px; }
+        .side { display:block; padding:15px; }
+        .detail { margin-top:16px; padding-top:13px; border-top:1px solid #dce6eb; }
+        .smallprint { margin-top:12px; }
+      }
+      @media (prefers-reduced-motion:no-preference) { .event, .zone-card, .switcher button { transition:background .15s,border-color .15s; } }
+    </style>
+    <script src="/wagon-concepts.js" defer></script>
+  </head>
+  <body>
+    <header class="top"><div class="top-in"><div class="brand">РЕЙС 400 <span aria-hidden="true">·</span> Вагон</div><div class="top-note">Отдельное превью карты</div></div></header>
+    <main>
+      <div class="intro">
+        <div><h1>Три варианта вагона</h1><p>Переключайте схемы, класс и точки событий. Выбранное дело видно на карте; осмотр открывает ещё одну точку.</p></div>
+        <label class="class-select">Класс вагона <select id="class-select"><option value="standard">Стандарт · 3+2</option><option value="comfort">Комфорт · 2+2</option><option value="business">Бизнес · 2+2</option><option value="first">Первый · 2+1</option></select></label>
+      </div>
+      <div class="switcher" role="tablist" aria-label="Варианты схемы">
+        <button type="button" role="tab" id="tab-plan" aria-selected="true" aria-controls="concept" data-concept="plan"><b>01 · План</b><small>Все места и точные точки</small></button>
+        <button type="button" role="tab" id="tab-spatial" aria-selected="false" aria-controls="concept" data-concept="spatial"><b>02 · Вид сверху</b><small>Наглядный салон</small></button>
+        <button type="button" role="tab" id="tab-zones" aria-selected="false" aria-controls="concept" data-concept="zones"><b>03 · Зоны</b><small>Быстрая ориентация</small></button>
+      </div>
+      <div class="workbench">
+        <section class="stage" id="concept" role="tabpanel" aria-labelledby="tab-plan"><div class="stage-heading"><div><h2 id="concept-name">План мест</h2><p id="concept-description">Салон целиком: номер ряда, место и расположение событий.</p></div><span class="stage-flag" id="layout-flag">12 рядов · учебная схема</span></div><div class="canvas" id="map-canvas"></div><div class="legend"><span><i class="pin" aria-hidden="true">1</i> Обращение</span><span><i class="pin urgent" aria-hidden="true">!</i> Срочно</span><span><i class="pin waiting" aria-hidden="true">2</i> Ожидание</span></div></section>
+        <aside class="side"><h2>Известные дела</h2><p class="hint">Нажмите на дело или его отметку в вагоне.</p><div class="event-list" id="event-list"></div><button type="button" class="reveal" id="reveal">Осмотреть проход · открыть событие</button><div class="detail" id="event-detail" aria-live="polite"></div></aside>
+      </div>
+      <p class="smallprint">Это варианты игрового интерфейса. Число рядов, нумерация мест и служебные зоны здесь условные; перед использованием в игре их нужно сверить с материалами по каждому классу вагона. Превью не запускает смену и не влияет на профиль.</p>
+    </main>
+  </body>
+</html>
