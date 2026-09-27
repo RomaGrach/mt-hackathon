@@ -2,12 +2,15 @@ import { esc, button, heading, scales, note } from './ui.js';
 import { shiftHud, sheet, tutorialContent } from './shift-view.js';
 import { shiftHome } from './motivation-view.js';
 
-const brand = '<span class="wordmark">РЕЙС <b>400</b></span>';
-const crewOptions =
-  '<option value="msk-1">М-01 · Москва</option><option value="msk-2">М-02 · Москва</option><option value="spb-1">П-01 · Петербург</option><option value="spb-2">П-02 · Петербург</option>';
+const brand = '<button type="button" class="wordmark brand-button" data-action="nav" data-view="landing" aria-label="На стартовый экран">РЕЙС <b>400</b></button>';
+const brandStatic = '<span class="wordmark">РЕЙС <b>400</b></span>';
 
 export function welcome() {
-  return `<main id="main" class="welcome">${brand}<div class="welcome-grid"><section>${heading('Тренажёр проводника', 'Добро пожаловать на борт', 'Рабочие ситуации, ваши решения и разбор последствий.')}</section><section class="panel onboarding"><h2>Ваш профиль проводника</h2><p>Создайте учебный профиль, выберите смену и пройдите её от приёмки до разбора.</p><form id="join-form"><details data-disclosure="crew"><summary>Выбрать учебную бригаду</summary><label for="crew">Бригада</label><select id="crew" name="crew">${crewOptions}</select></details><button class="primary-button" type="submit">Войти как игрок</button></form><button class="outline-button admin-entry" data-action="nav" data-view="admin">▦ Администратор · все игроки</button><details data-disclosure="privacy"><summary>О профиле и сохранении</summary><p>Не вводите личные данные. Профиль хранится на сервере, сессия — 7 дней. После выхода восстановить вход в демо нельзя.</p>${note}</details></section></div></main>`;
+  return `<main id="main" class="welcome">${brandStatic}<div class="welcome-grid"><section>${heading('Тренажёр проводника ВСМ', 'Учебная смена от ситуации до разбора', 'Практика рабочих решений: обращения пассажиров, безопасность, параллельные задачи и последствия выбора.')}</section><section class="panel onboarding"><h2>Выберите режим</h2><p>Для демонстрации не нужны регистрация и предварительная прокачка.</p><form id="join-form"><input type="hidden" name="crew" value="msk-1"><button class="primary-button" type="submit">Войти как проводник</button></form><button class="outline-button admin-entry" data-action="nav" data-view="admin">Администратор</button><details data-disclosure="privacy"><summary>О демо-профиле</summary><p>Используется синтетический учебный профиль. Не вводите личные данные.</p>${note}</details></section></div></main>`;
+}
+
+export function roleLanding(model) {
+  return `<div class="reading-column role-landing">${heading('РЕЙС 400', 'Выберите режим', 'Тренажёр рабочих ситуаций проводника высокоскоростного поезда.')}<section class="role-grid"><button class="primary-button role-card" data-action="nav" data-view="home"><strong>Проводник</strong><span>Курс, тренировки, задачи и разбор смен.</span></button><button class="outline-button role-card" data-action="nav" data-view="admin"><strong>Администратор</strong><span>Сводка по учебным профилям и результатам.</span></button></section></div>`;
 }
 
 export function shell(content, model) {
@@ -17,23 +20,8 @@ export function shell(content, model) {
     ['profile', 'Навыки и профиль'],
     ['leaderboard', 'Рейтинг'],
     ['notices', 'Уведомления'],
-    ['admin', 'Администратор'],
   ];
-  return `<div class="app-shell ${model.view === 'run' ? 'playing-shell' : 'hub-shell'}"><header class="app-header ${model.view === 'run' ? 'game-header' : ''}">${model.view === 'run' ? '' : brand}${model.view === 'run' && model.run?.schemaVersion === 2 ? shiftHud(model.run) : ''}${model.view === 'run' && model.run?.schemaVersion === 2 ? '' : `<details class="site-menu" data-disclosure="menu"><summary>☰ Меню${unread ? `<span class="notice-count" aria-label="${unread} непрочитанных">${unread}</span>` : ''}</summary><nav aria-label="Главное меню">${items.map(([id, label]) => `<button class="nav-item ${model.view === id ? 'active' : ''}" data-action="nav" data-view="${id}" aria-label="${label}" ${model.view === id ? 'aria-current="page"' : ''}><span>${label}</span></button>`).join('')}</nav></details>`}</header><div class="workspace"><main id="main">${content}</main>${
-    model.view !== 'run'
-      ? `<nav class="hub-dock" aria-label="Разделы игры">${[
-          ['home', '⌂', 'Главная'],
-          ['profile', '◉', 'Профиль'],
-          ['leaderboard', '♜', 'Рейтинг'],
-          ['notices', '✉', 'Новости'],
-        ]
-          .map(
-            ([v, icon, label]) =>
-              `<button data-action="nav" data-view="${v}" ${model.view === v ? 'aria-current="page"' : ''}><span>${icon}</span>${label}</button>`
-          )
-          .join('')}</nav>`
-      : ''
-  }</div></div>`;
+  return `<div class="app-shell ${model.view === 'run' ? 'playing-shell' : 'hub-shell'}"><header class="app-header ${model.view === 'run' ? 'game-header' : ''}">${model.view === 'run' ? '' : brand}${model.view === 'run' && model.run?.schemaVersion === 2 ? shiftHud(model.run) : ''}${model.view === 'run' && model.run?.schemaVersion === 2 ? '' : `<details class="site-menu" data-disclosure="menu"><summary>☰ Меню${unread ? `<span class="notice-count" aria-label="${unread} непрочитанных">${unread}</span>` : ''}</summary><nav aria-label="Главное меню">${items.map(([id, label]) => `<button class="nav-item ${model.view === id ? 'active' : ''}" data-action="nav" data-view="${id}" aria-label="${label}" ${model.view === id ? 'aria-current="page"' : ''}><span>${label}</span></button>`).join('')}</nav></details>`}</header><div class="workspace"><main id="main">${content}</main></div></div>`;
 }
 
 export function home(model) {
