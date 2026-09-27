@@ -2436,3 +2436,16 @@ button.wagon-seat:hover {background:#c5dcfa;transform:none;}
 .d2-reaction ul {padding-left:18px;font-size:14px;}
 .d2-reaction li {margin:10px 0;}
 .d2-reaction li p {font-size:14px;}
+
+/* Cards hold the whole conversation and its result; the work list stays quiet. */
+.d2-work-group {margin:20px 0 28px;}
+.d2-work-group>h2 {display:flex;align-items:center;gap:10px;border-bottom:2px solid #d8e3ef;padding-bottom:10px;}
+.d2-work-group>h2 small {font-size:14px;color:#61738a;font-weight:500;}
+.d2-card-outcome {border-left:3px solid #248c80;padding-left:16px;margin:24px 0;}
+.d2-map-preview {padding:14px 0 20px;border-bottom:1px solid #c8d5e4;margin-bottom:18px;}
+.d2-map-preview p {font-size:16px;line-height:1.5;}
+.d2-log li {padding:0;}
+.d2-log-entry {padding:14px 0;}
+.d2-log-entry summary {display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:revert;font-weight:600;}
+.d2-log-entry summary small {white-space:nowrap;font-weight:400;}
+.d2-log-entry[open] summary {margin-bottom:12px;}

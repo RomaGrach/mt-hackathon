@@ -93,8 +93,8 @@ export const tutorialContent = `<div class="tutorial-steps"><article><b>1</b><di
 export function sheet(id, title, content) {
   return `<dialog class="game-sheet" id="sheet-${id}" aria-labelledby="sheet-title-${id}"><header><h2 id="sheet-title-${id}">${title}</h2><button class="sheet-close" data-close-sheet aria-label="Закрыть">×</button></header><div class="sheet-body">${content}</div></dialog>`;
 }
-export function renderShift(run, { prototype = false, embedded = false } = {}) {
-  if (run?.engineVersion === 'shift-4') return designShift(run);
+export function renderShift(run, { prototype = false, embedded = false, ui = {} } = {}) {
+  if (run?.engineVersion === 'shift-4') return designShift(run, ui);
   if (prototype) return renderPrototype(run, { prototype, embedded });
   if (!run)
     return '<section class="reading-column"><h1 tabindex="-1">Открываем смену…</h1></section>';

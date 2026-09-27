@@ -19,7 +19,11 @@ const options = {
   variantId: 'full',
   timingPolicyId: 'standard',
 };
-const act = (s, cmd, content = c) => reduce(s, cmd, content, now);
+const act = (s, cmd, content = c) => {
+  if (s.acknowledgement && cmd.type !== 'continue')
+    s = reduce(s, { type: 'continue' }, content, now);
+  return reduce(s, cmd, content, now);
+};
 const inspect = (s, content = c) =>
   act(s, { type: 'inspect', zoneId: 'carriage', actionId: 'inspect' }, content);
 function start(content = c) {
@@ -47,14 +51,21 @@ function fixture(id, content = c) {
   return s;
 }
 function choose(s, id, content = c) {
-  s = act(s, { type: 'focus', incidentId: 'p1' }, content);
-  const a = view(s, content, now).actions.find((a) => a.command === 'choose' && a.actionId === id);
-  return act(s, commandFor(a), content);
+  if (s.phase !== 'scene') s = act(s, { type: 'focus', incidentId: 'p1' }, content);
+  for (let i = 0; i < 8 && s.phase === 'scene'; i++) {
+    const a = view(s, content, now).actions.find(
+      (a) => a.command === 'choose' && a.actionId === id
+    );
+    assert.ok(a, `Expected branch ${id}`);
+    s = act(s, commandFor(a), content);
+  }
+  assert.notEqual(s.phase, 'scene');
+  return s;
 }
 test('acceptance closes after another first work action, never after navigation; deferred defect appears once', () => {
   let s = fixture('seat');
   s = act(s, { type: 'focus', incidentId: 'p1' });
-  s = act(s, { type: 'overview' });
+  assert.equal(s.step, 0);
   assert.equal(s.tasks[0].status, 'open');
   s = choose(s, 'verify');
   assert.equal(s.step, 1);
@@ -92,7 +103,7 @@ test('a newly promised one-turn task remains actionable for the next action and 
   assert.ok(!json.includes('expiresTurn'));
   assert.ok(!json.includes('"ttl"'));
 });
-test('full work list includes all known problems and tasks even while an inspection restricts actions', () => {
+test('overview groups open problems above tasks; inspection keeps only its found problems inside its card', () => {
   let s = fixture('seat');
   s.problems.push({
     ...s.problems[0],
@@ -102,24 +113,41 @@ test('full work list includes all known problems and tasks even while an inspect
     hidden: true,
     revealed: false,
   });
+  const overview = designShift(view(s, c, now));
+  assert.match(overview, /aria-label="Все текущие проблемы и задачи"/);
+  assert.ok(overview.indexOf('<h2>Проблемы') < overview.indexOf('<h2>Задачи'));
+  for (const item of [...view(s, c, now).incidents, ...s.tasks].filter((x) => x.status === 'open'))
+    assert.ok(overview.includes(item.label));
+  assert.match(overview, /data-work-card="inspect"/);
   s = inspect(s);
   const r = view(s, c, now),
     html = designShift(r);
-  assert.match(html, /aria-label="Все текущие проблемы и задачи"/);
-  const list = html.split('aria-label="Все текущие проблемы и задачи"')[1].split('</section>')[0];
-  for (const item of [...r.incidents, ...r.tasks].filter((x) => x.status === 'open'))
-    assert.ok(list.includes(item.label));
-  assert.match(list, /disabled/);
-  assert.match(list, /Сначала закончите текущий осмотр/);
+  assert.match(html, /Найдено проблем: 1/);
+  assert.match(html, /Закончить осмотр без решения/);
+  assert.doesNotMatch(html, /aria-label="Все текущие проблемы и задачи"/);
+  assert.deepEqual(
+    r.actions.filter((a) => a.command === 'focus').map((a) => a.incidentId),
+    ['p2']
+  );
   assert.doesNotMatch(html, /1 ход|data-game-pane="tasks"|data-game-tab="tasks"/);
 });
-test('reaction keeps the selected outcome visible alongside same-turn automatic consequences and new obligations', () => {
+test('card keeps its selected outcome and related new obligations; unrelated expiry stays in the log', () => {
   let s = choose(fixture('blanket'), 'bring');
   let html = designShift(view(s, c, now));
   const response = html.split('aria-label="Результат действия"')[1].split('</section>')[0];
-  assert.ok(response.includes(c.problems.blanket.choices.find((o) => o.id === 'bring').text));
-  assert.match(response, /Новая задача: Принести плед/);
-  assert.match(response, /Задача закрыта: Принять вагон/);
+  assert.ok(response.includes(s.problems[0].outcome));
+  assert.match(response, /Дальнейшие задачи/);
+  assert.match(response, /Принести плед/);
+  assert.doesNotMatch(response, /Принять вагон/);
+  assert.ok(s.acknowledgement.events.some((e) => e.type === 'task_failed' && e.taskId === 't1'));
+  const cleared = act(s, { type: 'continue' });
+  const overview = designShift(view(cleared, c, now));
+  assert.doesNotMatch(overview, /aria-label="Результат действия"/);
+  const overviewScene = overview
+    .split('data-game-pane="scene"')[1]
+    .split('data-game-pane="map"')[0];
+  assert.doesNotMatch(overviewScene, /Принять вагон/);
+  assert.ok(!overviewScene.includes(s.problems[0].outcome));
   assert.doesNotMatch(response, /<details|<dialog/);
   const other = choose(fixture('blanket'), 'dismiss');
   assert.notEqual(other.problems[0].outcome, s.problems[0].outcome);
@@ -158,13 +186,15 @@ test('critical timeout and final turn close due obligations without duplicate ef
     1
   );
 });
-test('task deadlines and reactions survive retry, reload and exact replay', (t) => {
+test('task deadlines and card results survive reload and exact replay', (t) => {
   const h = harness();
   t.after(() => h.store.close());
   h.start({ scenarioId: 'design002', variantId: 'orientation' });
-  h.act('begin');
+  if (h.run.phase === 'briefing') h.act('begin');
   h.act('task');
+  h.act('continue');
   h.act('task');
+  h.act('continue');
   h.act('abort');
   assert.equal(h.v2.exactReplay(h.profile, h.run.id).verified, true);
   assert.deepEqual(h.v2.get(h.profile, h.run.id), h.run);
@@ -175,17 +205,23 @@ test('inspection and critical timeout keep their own reaction when tasks expire 
   const inspection = designShift(view(inspected, c, now))
     .split('aria-label="Результат действия"')[1]
     .split('</section>')[0];
-  assert.match(inspection, /<h2>Осмотр вагона<\/h2>/);
-  assert.match(inspection, /Задача закрыта: Принять вагон/);
+  assert.match(inspection, /Осмотр завершён/);
+  assert.equal(inspected.acknowledgement.title, 'Осмотр вагона');
+  assert.ok(
+    inspected.acknowledgement.events.some((e) => e.type === 'task_failed' && e.taskId === 't1')
+  );
   let timed = fixture('medical');
   timed = act(timed, { type: 'focus', incidentId: 'p1' });
   timed = expire(timed, c, now + 60000);
   const reaction = designShift(view(timed, c, now))
     .split('aria-label="Результат действия"')[1]
     .split('</section>')[0];
-  assert.match(reaction, /Время на решение истекло/);
-  assert.match(reaction, /<h2>Пассажиру стало плохо<\/h2>/);
-  assert.match(reaction, /Задача закрыта: Принять вагон/);
+  assert.ok(reaction.includes(timed.problems[0].outcome));
+  assert.equal(timed.acknowledgement.type, 'critical_timeout');
+  assert.equal(timed.acknowledgement.title, 'Пассажиру стало плохо');
+  assert.ok(
+    timed.acknowledgement.events.some((e) => e.type === 'task_failed' && e.taskId === 't1')
+  );
 });
 
 test('finishing an inspection records its actual completion instead of a stale invitation to solve it', () => {

@@ -5,6 +5,7 @@ const round = (n) => Math.round(n * 100) / 100;
 const template = (text, p) => text.replaceAll('{seat}', String(p.seat));
 const definition = (c, p) => c.problems[p.templateId];
 const currentRules = (s) => s.mechanicsVersion === 2;
+const cardFlow = (s) => s.interactionVersion === 1;
 function hasRequirement(s, definition, source) {
   if (!definition.requires) return true;
   return !!(currentRules(s) && definition.requiresScope === 'problem'
@@ -262,6 +263,33 @@ function taskOutcome(s, c, t, now, success, spawn = true, reason = null) {
     }
   }
 }
+function acknowledgeOutcome(s, event, kind) {
+  if (!cardFlow(s) || !event) return;
+  s.acknowledgement = {
+    kind,
+    type: event.type,
+    reason: event.reason ?? null,
+    title: event.title,
+    text: event.text,
+    seat: event.seat ?? 0,
+    incidentId: event.incidentId ?? null,
+    taskId: event.taskId ?? null,
+    impact: clone(event.impact ?? null),
+    eventId: event.eventId,
+    events: clone(
+      s.log.filter(
+        (e) =>
+          e.seq > event.seq &&
+          !e.hidden &&
+          !e.wasHidden &&
+          e.type !== 'finished' &&
+          e.type !== 'prevented' &&
+          e.reason !== 'shift_end'
+      )
+    ),
+  };
+  if (!s.result) s.phase = 'acknowledgement';
+}
 function finish(s, c, now, reason) {
   // The pre-generated finite pool is part of the denominator, even on early failure.
   for (const p of s.problems)
@@ -490,6 +518,7 @@ export function createDesignShift(c, opts, now) {
     ...(c.journalVersion === 2 ? { journalVersion: 2 } : {}),
     ...(c.mechanicsVersion === 2 ? { mechanicsVersion: 2, scopedFlags: {} } : {}),
     ...(c.taskLifetimeVersion === 1 ? { taskLifetimeVersion: 1 } : {}),
+    ...(c.interactionVersion === 1 ? { interactionVersion: 1, acknowledgement: null } : {}),
     engineVersion: 'shift-4',
     id: opts.id,
     profileId: opts.profileId,
@@ -547,10 +576,13 @@ export function createDesignShift(c, opts, now) {
 }
 function choices(s, c, p) {
   const d = definition(c, p);
-  return p.node === 'start' ? d.choices : d.dialogue[p.node].choices;
+  const options = p.node === 'start' ? d.choices : d.dialogue[p.node].choices;
+  return cardFlow(s) ? shuffle(options, random(`${s.seed}:${p.id}:${p.node}:choices`)) : options;
 }
 const a = (command, label, fields = {}) => ({ command, label, available: true, ...fields });
 export function designActions(s, c) {
+  if (cardFlow(s) && s.acknowledgement)
+    return [a('continue', s.result ? 'К итогам смены' : 'Понятно')];
   if (s.phase === 'result') return [];
   if (s.phase === 'briefing') return [a('begin', 'Начать смену'), a('abort', 'Прервать смену')];
   const actions = [];
@@ -571,6 +603,10 @@ export function designActions(s, c) {
           cost: o.dialogue ? 0 : 1,
         })
       );
+    if (cardFlow(s)) {
+      actions.push(a('abort', 'Прервать смену'));
+      return actions;
+    }
     actions.push(a('overview', 'К делам вагона'));
   }
   for (const p of active)
@@ -620,6 +656,11 @@ export function reduceDesignShift(state, command, c, now, requestId = null) {
   s.revision++;
   s.updatedAt = now;
   s.lastObservedServerAt = now;
+  if (command.type === 'continue' && cardFlow(s) && s.acknowledgement) {
+    s.acknowledgement = null;
+    s.phase = s.result ? 'result' : 'overview';
+    return s;
+  }
   if (command.type === 'abort') {
     finish(s, c, now, 'aborted');
     return s;
@@ -669,24 +710,28 @@ export function reduceDesignShift(state, command, c, now, requestId = null) {
     p.choice = o.label;
     if (o.dialogue) {
       p.node = o.dialogue;
-      log(s, 'dialogue', definition(c, p).title, o.text, now, {
+      log(s, 'dialogue', definition(c, p).title, cardFlow(s) ? template(o.text, p) : o.text, now, {
         incidentId: p.id,
         choice: o.label,
       });
     } else {
       outcome(s, c, p, o, now);
+      const event = s.log.find((e) => e.eventId === p.resultEventId);
       s.decisionCount++;
       s.phase = 'overview';
       s.focusIncidentId = null;
       advance(s, c, now);
+      acknowledgeOutcome(s, event, 'problem');
     }
   }
   if (command.type === 'task') {
     const t = s.tasks.find((t) => t.id === command.taskId);
     taskOutcome(s, c, t, now, true);
+    const event = s.log.findLast((e) => e.type === 'task_completed' && e.taskId === t.id);
     s.phase = 'overview';
     s.focusIncidentId = null;
     advance(s, c, now);
+    acknowledgeOutcome(s, event, 'task');
   }
   if (command.type === 'inspect') {
     const found = s.problems
@@ -712,7 +757,11 @@ export function reduceDesignShift(state, command, c, now, requestId = null) {
     s.phase = 'overview';
     s.focusIncidentId = null;
     if (found.length) s.pendingInspection = found.map((p) => p.id);
-    else advance(s, c, now);
+    else {
+      const event = s.log.findLast((e) => e.type === 'inspection');
+      advance(s, c, now);
+      acknowledgeOutcome(s, event, 'inspection');
+    }
   }
   if (command.type === 'continue') {
     if (s.taskLifetimeVersion === 1)
@@ -723,9 +772,11 @@ export function reduceDesignShift(state, command, c, now, requestId = null) {
         'Осмотр завершён без немедленного решения. Вы вернулись к остальным делам.',
         now
       );
+    const event = s.log.findLast((e) => e.type === 'inspection');
     s.phase = 'overview';
     s.focusIncidentId = null;
     advance(s, c, now);
+    acknowledgeOutcome(s, event, 'inspection');
   }
   return s;
 }
@@ -738,7 +789,9 @@ export function expireDesignShift(state, c, now) {
   s.updatedAt = now;
   const p = s.problems.find((p) => p.id === w.incidentId);
   outcome(s, c, p, definition(c, p).worst, now, 'timeout');
+  const event = s.log.find((e) => e.eventId === p.resultEventId);
   advance(s, c, now);
+  acknowledgeOutcome(s, event, 'problem');
   return s;
 }
 export function publicDesignShift(s, c, now) {
@@ -757,6 +810,7 @@ export function publicDesignShift(s, c, now) {
     engineVersion: s.engineVersion,
     id: s.id,
     phase: s.phase,
+    ...(cardFlow(s) ? { interactionVersion: 1, acknowledgement: clone(s.acknowledgement) } : {}),
     status: s.status,
     revision: s.revision,
     serverNow: now,

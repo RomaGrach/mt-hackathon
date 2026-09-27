@@ -29,14 +29,24 @@ function start(id = 'seed-one', variantId = 'full') {
     now
   );
 }
-const act = (s, cmd) => reduce(s, cmd, c, now);
+// These tests assert completed-work mechanics; card acknowledgement is covered separately.
+const acknowledge = (s) => (s.acknowledgement ? reduce(s, { type: 'continue' }, c, now) : s);
+const act = (s, cmd) => acknowledge(reduce(s, cmd, c, now));
 function focus(s, p) {
   return act(s, { type: 'focus', incidentId: p.id });
 }
 function choose(s, id) {
   const a = view(s, c, now).actions.find((a) => a.command === 'choose' && a.actionId === id);
   assert.ok(a);
-  return act(s, commandFor(a));
+  let next = act(s, commandFor(a));
+  if (next.problems.find((p) => p.id === next.focusIncidentId)?.node.startsWith('conversation-')) {
+    const terminal = view(next, c, now).actions.find(
+      (a) => a.command === 'choose' && a.actionId === id
+    );
+    assert.ok(terminal, 'The selected authored approach must preserve its terminal outcome');
+    next = act(next, commandFor(terminal));
+  }
+  return next;
 }
 function fixture(templateId, hidden = false) {
   const s = start();
@@ -171,7 +181,7 @@ test('Design002: timeout and safety zero are not universal failures, explicit fa
   let s = fixture('medical');
   s = focus(s, s.problems[0]);
   s.scales.safety = 0;
-  s = expire(s, c, now + 60000);
+  s = acknowledge(expire(s, c, now + 60000));
   assert.equal(s.phase, 'overview');
   assert.equal(s.step, 1);
   assert.equal(s.scales.safety, 0);
@@ -293,10 +303,11 @@ test('Design002: late command commits timeout once and a second completed shift 
     const critical = loaded.problems.find(
       (p) => p.status === 'active' && p.revealed && c.problems[p.templateId].category === 'critical'
     );
-    const a = critical
-      ? h.run.actions.find((a) => a.command === 'focus' && a.incidentId === critical.id)
-      : h.run.actions.find((a) => a.command === 'continue') ||
-        h.run.actions.find((a) => a.command === 'inspect');
+    const a =
+      critical && !h.run.acknowledgement
+        ? h.run.actions.find((a) => a.command === 'focus' && a.incidentId === critical.id)
+        : h.run.actions.find((a) => a.command === 'continue') ||
+          h.run.actions.find((a) => a.command === 'inspect');
     h.run = h.v2.command(h.profile, h.run.id, {
       requestId: h.key(),
       revision: h.run.revision,
@@ -321,6 +332,7 @@ test('Design002: late command commits timeout once and a second completed shift 
   assert.equal(h.v2.get(h.profile, id).step, step);
   assert.equal(h.v2.get(h.profile, id).log.filter((e) => e.type === 'critical_timeout').length, 1);
   h.run = h.v2.get(h.profile, id);
+  if (h.run.acknowledgement) h.act('continue');
   if (!h.run.result) h.act('abort');
   const before = h.service.bootstrap(h.profile).competency.points;
   h.start({ scenarioId: 'design002', variantId: 'orientation', timingPolicyId: 'extended' });

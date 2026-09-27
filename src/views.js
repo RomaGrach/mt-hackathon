@@ -53,7 +53,7 @@ function runView(model) {
   if (!r) return '<p role="status">Восстанавливаем попытку…</p>';
   if (r.schemaVersion === 2)
     return (
-      renderShift(r, { embedded: true }) +
+      renderShift(r, { embedded: true, ui: model }) +
       (r.engineVersion === 'shift-4' ? '' : shiftResultControls(r)) +
       (model.auditMessage ? '<p role="status">' + esc(model.auditMessage) + '</p>' : '')
     );
@@ -161,7 +161,7 @@ export function render(model) {
                         : model.view === 'leaderboard'
                           ? leaders(model)
                           : model.view === 'notices'
-                            ? notices(model)
+                            ? home(model)
                             : home(model),
               model
             );

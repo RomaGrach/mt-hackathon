@@ -21,6 +21,7 @@ export function incidentTone(incident, run) {
     : 'attention';
 }
 export function incidentNavigation(run, id) {
+  if (run.engineVersion === 'shift-4') return `data-map-preview="${esc(id)}"`;
   if (run.focusIncidentId === id && run.phase === 'scene') return 'data-game-tab="scene"';
   const at = (run.actions || []).findIndex(
     (a) => a.command === 'focus' && a.incidentId === id && a.available !== false

@@ -16,14 +16,12 @@ export function roleLanding(model) {
 }
 
 export function shell(content, model) {
-  const unread = model.boot.notices.filter((n) => !n.readAt).length;
   const items = [
     ['home', 'Моя смена'],
     ['profile', 'Мой прогресс'],
     ['leaderboard', 'Рейтинг'],
-    ['notices', 'Уведомления'],
   ];
-  return `<div class="app-shell ${model.view === 'run' ? 'playing-shell' : 'hub-shell'}"><header class="app-header ${model.view === 'run' ? 'game-header' : ''}">${model.view === 'run' ? '' : brand}${model.view === 'run' && model.run?.schemaVersion === 2 ? shiftHud(model.run) : ''}${model.view === 'run' && model.run?.schemaVersion === 2 ? '' : `<details class="site-menu" data-disclosure="menu"><summary>☰ Меню${unread ? `<span class="notice-count" aria-label="${unread} непрочитанных">${unread}</span>` : ''}</summary><nav aria-label="Главное меню">${items.map(([id, label]) => `<button class="nav-item ${model.view === id ? 'active' : ''}" data-action="nav" data-view="${id}" aria-label="${label}" ${model.view === id ? 'aria-current="page"' : ''}><span>${label}</span></button>`).join('')}</nav></details>`}</header><div class="workspace"><main id="main">${content}</main></div></div>`;
+  return `<div class="app-shell ${model.view === 'run' ? 'playing-shell' : 'hub-shell'}"><header class="app-header ${model.view === 'run' ? 'game-header' : ''}">${model.view === 'run' ? '' : brand}${model.view === 'run' && model.run?.schemaVersion === 2 ? shiftHud(model.run) : ''}${model.view === 'run' && model.run?.schemaVersion === 2 ? '' : `<details class="site-menu" data-disclosure="menu"><summary>☰ Меню</summary><nav aria-label="Главное меню">${items.map(([id, label]) => `<button class="nav-item ${model.view === id ? 'active' : ''}" data-action="nav" data-view="${id}" aria-label="${label}" ${model.view === id ? 'aria-current="page"' : ''}><span>${label}</span></button>`).join('')}</nav></details>`}</header><div class="workspace"><main id="main">${content}</main></div></div>`;
 }
 
 export function home(model) {

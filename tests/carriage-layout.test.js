@@ -37,7 +37,7 @@ test('complete reference layouts have stable, unique addresses including the com
   assert.equal(CARRIAGE_LAYOUTS.comfort.rows.filter((row) => row.play).length, 2);
   assert.equal(CARRIAGE_LAYOUTS.comfort.rows[4].left.length, 0);
 });
-test('map keeps the seat number visible under incident markers and navigation opens the actual incident', () => {
+test('map keeps the seat number visible under incident markers and navigation previews the actual incident before opening', () => {
   let state = createDesignShift(content, options('standard'), now);
   state = reduceDesignShift(state, { type: 'begin' }, content, now);
   let run = publicDesignShift(state, content, now);
@@ -47,14 +47,15 @@ test('map keeps the seat number visible under incident markers and navigation op
   assert.match(
     html,
     new RegExp(
-      'data-seat-number="' + incident.seat + '"[^>]*data-focus-incident="' + incident.id + '"'
+      'data-seat-number="' + incident.seat + '"[^>]*data-map-preview="' + incident.id + '"'
     )
   );
   assert.match(html, new RegExp('class="wagon-seat-number">' + incident.seat + '</span>'));
   assert.equal((html.match(/data-seat-number=/g) || []).length, 85);
   state = reduceDesignShift(state, { type: 'focus', incidentId: incident.id }, content, now);
   run = publicDesignShift(state, content, now);
-  assert.match(wagonMap(run), /data-game-tab="scene"/);
+  assert.match(wagonMap(run), /data-map-preview=/);
+  assert.ok(!run.actions.some((a) => a.command === 'focus'));
   assert.deepEqual(JSON.parse(JSON.stringify(state)).context.layout, state.context.layout);
 });
 test('previously saved shifts retain their passenger addresses without changing replay input', () => {

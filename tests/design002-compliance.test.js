@@ -20,7 +20,9 @@ const opts = {
   timingPolicyId: 'standard',
   variantId: 'orientation',
 };
-const act = (s, cmd) => reduce(s, cmd, c, now);
+// These tests assert completed-work mechanics; card acknowledgement is covered separately.
+const acknowledge = (s) => (s.acknowledgement ? reduce(s, { type: 'continue' }, c, now) : s);
+const act = (s, cmd) => acknowledge(reduce(s, cmd, c, now));
 function fixture(id) {
   const s = act(create(c, opts, now), { type: 'begin' });
   s.tasks = [];
@@ -55,7 +57,15 @@ function focus(s, p = s.problems[0]) {
 function choose(s, id) {
   const a = view(s, c, now).actions.find((a) => a.command === 'choose' && a.actionId === id);
   assert.ok(a);
-  return act(s, commandFor(a));
+  let next = act(s, commandFor(a));
+  if (next.problems.find((p) => p.id === next.focusIncidentId)?.node.startsWith('conversation-')) {
+    const terminal = view(next, c, now).actions.find(
+      (a) => a.command === 'choose' && a.actionId === id
+    );
+    assert.ok(terminal, 'The selected authored approach must preserve its terminal outcome');
+    next = act(next, commandFor(terminal));
+  }
+  return next;
 }
 test('A1: every new shift critical policy has a real deadline, including linked introductory cases', () => {
   assert.throws(() => create(c, { ...opts, timingPolicyId: 'untimed' }, now), {
@@ -74,11 +84,11 @@ test('A1: every new shift critical policy has a real deadline, including linked 
     s.problems.find((p) => p.templateId === 'hot-socket')
   );
   assert.equal(s.criticalWindow.deadline, now + 60000);
-  const again = focus(
-    act(s, { type: 'overview' }),
-    s.problems.find((p) => p.templateId === 'hot-socket')
+  assert.throws(() => act(s, { type: 'overview' }), { code: 'ACTION_NOT_AVAILABLE' });
+  assert.equal(
+    view(structuredClone(s), c, now + 1000).criticalWindow.deadline,
+    s.criticalWindow.deadline
   );
-  assert.equal(again.criticalWindow.deadline, s.criticalWindow.deadline);
   assert.equal(
     expire(s, c, now + 60000).problems.find((p) => p.templateId === 'hot-socket').resolution,
     'timeout'
@@ -120,7 +130,7 @@ test('A3/A4/A8: primary fatal cause survives end cleanup; all critical errors an
   assert.match(alternative, /Организовать связь/);
   assert.match(alternative, /Передать место/);
   let t = focus(fixture('medical'));
-  t = expire(t, c, now + 60000);
+  t = acknowledge(expire(t, c, now + 60000));
   assert.equal(t.phase, 'overview');
   t = act(t, { type: 'abort' });
   assert.equal(t.result.criticalErrors.length, 1);
