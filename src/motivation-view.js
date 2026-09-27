@@ -1,3 +1,4 @@
+import { courseLessons, lessonPassed } from './course.js';
 import { sheet } from './shift-view.js';
 import { esc, button, heading } from './ui.js';
 const when = (value) =>
@@ -102,32 +103,32 @@ export function shiftHome(model) {
   const variants = c.trainingVariants?.length
     ? c.trainingVariants
     : [{ id: '', label: 'Базовая смена' }];
-  const course = active
-    ? '<section class="next-session"><p class="eyebrow">Курс</p><h1 tabindex="-1">Продолжить смену</h1>' +
-      button('Продолжить смену', 'resume', attr('id', active.id)) +
-      '</section>'
-    : '<section class="course-section"><div class="section-heading"><p class="eyebrow">Курс</p><h1 tabindex="-1">Учебные смены</h1></div><div class="course-list">' +
-      variants
-        .map(
-          (v, i) =>
-            '<article class="course-card"><div><small>Смена ' +
-            (i + 1) +
-            '</small><h2>' +
-            esc(v.label || 'Учебная смена') +
-            '</h2></div>' +
-            button(
-              i === 0 ? 'Начать смену' : 'Пройти смену',
-              'course-start',
-              attr('variant', v.id),
-              i === 0 ? 'primary-button' : 'outline-button'
-            ) +
-            '</article>'
-        )
-        .join('') +
-      '</div></section>';
+  const lessons = courseLessons(c);
+  const history = b.motivation?.history || [];
+  const completed = lessons.filter((l) => lessonPassed(l, history)).length;
+  const next = lessons.find((l) => !lessonPassed(l, history)) || lessons[0];
+  const start = (l, label, style = 'outline-button') =>
+    button(label, 'course-start', attr('lesson', l.id), style);
+  const course = `<section class="course-dashboard">
+    <div class="course-heading"><div><p class="eyebrow">Курс ВСМ</p><h1 tabindex="-1">Моя смена</h1></div><span class="course-count">${completed} / ${lessons.length}<small>смен пройдено</small></span></div>
+    <progress class="course-progress" max="${lessons.length}" value="${completed}" aria-label="Прогресс курса"></progress>
+    <section class="course-next"><p class="eyebrow">${active ? 'Смена в работе' : completed === lessons.length ? 'Курс пройден · повторение' : 'Следующая смена · ' + next.number}</p><h2>${active ? 'Вернуться в вагон' : esc(next.classLabel)}</h2><p>${active ? 'Сохранённые задачи и решения ждут вас.' : esc(next.title)}</p>${active ? button('Продолжить смену', 'resume', attr('id', active.id)) : start(next, 'Начать смену', 'primary-button')}</section>
+    <div class="home-switch" role="group" aria-label="Режим практики"><button data-home-tab="course" aria-pressed="true">Курс</button><button data-home-tab="custom" aria-pressed="false">Своя тренировка</button></div>
+    <section data-home-pane="course"><h2 class="plan-title">План курса</h2><div class="course-modules">${[
+      'standard',
+      'comfort',
+      'business',
+      'first',
+    ]
+      .map((key, i) => {
+        const group = lessons.filter((l) => l.serviceClass === key);
+        const done = group.filter((l) => lessonPassed(l, history)).length;
+        return `<details class="course-module" data-disclosure="course-${key}" ${next.serviceClass === key ? 'open' : ''}><summary><span class="module-index">${done === group.length ? '✓' : i + 1}</span><span><strong>${esc(group[0]?.classLabel)}</strong><small>${['Без таймера · знакомство с работой', 'Больше времени · новые условия', 'Срочные решения · 20 секунд', 'Проверка навыков · без подсказок'][i]}</small></span><span class="module-count">${done}/${group.length}</span></summary><div class="module-lessons">${group.map((l) => `<article class="lesson-row"><div><small>Смена ${l.number}${lessonPassed(l, history) ? ' · Пройдена' : ''}</small><h3>${esc(l.title)}</h3></div>${active ? '<span class="muted">После текущей смены</span>' : start(l, lessonPassed(l, history) ? 'Повторить' : 'Начать')}</article>`).join('')}</div></details>`;
+      })
+      .join('')}</div></section></section>`;
 
   const custom =
-    '<details class="panel custom-training" data-disclosure="custom-training"><summary>Своя тренировка</summary><form id="shift-start-form" class="settings-stack">' +
+    '<section class="custom-training" data-home-pane="custom" hidden><h2>Своя тренировка</h2><p>Выберите условия для отдельной практики.</p><form id="shift-start-form" class="settings-stack">' +
     select('shift-class', 'serviceClass', 'Класс обслуживания', c.classes, 'standard') +
     select(
       'shift-time',
@@ -146,20 +147,22 @@ export function shiftHome(model) {
       ],
       'training'
     ) +
-    select(
-      'shift-variant',
-      'variantId',
-      'Вариант смены',
-      variants,
-      variants[0].id
-    ) +
-    '<button class="outline-button" type="submit">Начать свою тренировку</button></form></details>';
+    select('shift-variant', 'variantId', 'Вариант смены', variants, variants[0].id) +
+    '<button class="outline-button" type="submit">Начать свою тренировку</button></form></section>';
 
   const tutorial = model.tutorialSeen
     ? ''
     : '<section class="first-lesson"><h2>Первый вход</h2><button class="outline-button" data-action="tutorial-start">Пройти обучение</button><button class="text-back" data-tutorial-skip>Пропустить</button></section>';
 
-  return '<div class="reading-column">' + course + tutorial + (!active ? custom : '') + '</div>';
+  return (
+    '<div class="reading-column course-home">' +
+    course +
+    (!active
+      ? custom
+      : '<section data-home-pane="custom" hidden><p>Завершите текущую смену, чтобы настроить новую тренировку.</p></section>') +
+    tutorial +
+    '</div>'
+  );
 }
 
 function evidenceGroup(group) {

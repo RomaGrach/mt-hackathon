@@ -895,6 +895,8 @@ export class Motivation {
         at: r.completedAt,
         mode: r.mode,
         variantId: r.variantId,
+        serviceClass: r.comparisonGroup.servicePolicyId.split('-')[0],
+        timingPolicyId: r.timingPolicy.id,
         episodePoints: r.episodePoints,
         possibleEpisodePoints: r.possibleEpisodePoints,
         criticalError: r.criticalError,
