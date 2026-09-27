@@ -115,7 +115,6 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
     .map((item, index) => {
       const at = actions.findIndex((a) => a.command === 'focus' && a.incidentId === item.id);
       const current = item.id === run.focusIncidentId;
-      if (at >= 0) used.add(at);
       const inside = `<span class="case-number">${index + 1}</span><span><strong>${esc(item.label)}</strong><small>${current ? 'Вы здесь · ' : ''}${esc(statuses[item.status] || item.status)}${item.handoffStatus ? ' · ' + esc(statuses[item.handoffStatus] || item.handoffStatus) : ''}</small></span>`;
       return at >= 0
         ? `<button class="case-tab ${current ? 'selected' : ''}" data-shift-action="${at}" data-focus-incident="${esc(item.id)}" ${current ? 'aria-current="true"' : ''}>${inside}</button>`
@@ -124,15 +123,24 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
     .join('');
   let body = '';
   const mainActions = () =>
-    `<div class="shift-actions">${buttons(['choose', 'inspect', 'wait', 'begin', 'continue', 'resume', 'finish'])}</div>`;
+    `<div class="shift-actions">${buttons(['choose', 'inspect', 'focus', 'begin', 'continue', 'resume', 'finish'])}</div>`;
+  const overviewActions = () => {
+    const hasWork = actions.some(
+      (a, i) =>
+        !used.has(i) &&
+        a.available !== false &&
+        ['focus', 'inspect'].includes(a.command)
+    );
+    return `<div class="shift-actions">${buttons(hasWork ? ['focus', 'inspect'] : ['wait'])}</div>`;
+  };
   if (run.phase === 'briefing')
     body = `${heading('Начало смены', 'Вагон готов к приёмке', 'Проверьте вагон, разберитесь с обращениями и выполните задачи.')}<div class="scene-card"><p>Часы начинаются с 08:00. Рабочие действия продвигают время на указанную длительность. Чтение и переходы времени не требуют.</p><p>В срочных ситуациях появится отдельный таймер реального времени.</p></div>${mainActions()}`;
   if (['inspection', 'scene'].includes(run.phase))
     body = `${heading(run.stage === 'inspection' ? 'Приёмка' : 'Ситуация · ' + (run.incidents?.find((i) => i.id === run.focusIncidentId)?.label || 'Вагон 3'), run.scene?.title || 'Текущее дело')}<div class="scene-card"><p class="speaker">${esc(run.scene?.speaker || 'Наблюдение')}</p><p class="observation">${esc(run.scene?.text)}</p></div><h2 class="decision-label">${esc(run.scene?.prompt || 'Ваше действие')}</h2>${mainActions()}`;
   if (run.phase === 'overview')
-    body = `${heading('Обзор вагона', 'Выберите следующее дело')}<div class="scene-card">${(run.observations || []).map((o) => `<p>${esc(o.text)}</p>`).join('')}</div>${mainActions()}`;
+    body = `${heading('Обзор вагона', 'Что требует внимания')}<div class="scene-card">${(run.observations || []).map((o) => `<p>${esc(o.text)}</p>`).join('')}</div>${overviewActions()}`;
   if (run.phase === 'feedback')
-    body = `${heading('Результат действия', run.feedback?.timedOut ? 'Время вышло' : 'Ситуация обновилась')}<div class="scene-card feedback-card"><p class="observation">${esc(run.feedback?.text)}</p>${run.feedback?.impact ? `<div class="impact-row"><span>♥ ${Number(run.feedback.impact.loyalty) > 0 ? '+' : ''}${Number(run.feedback.impact.loyalty) || 0}</span><span>◈ ${Number(run.feedback.impact.safety) > 0 ? '+' : ''}${Number(run.feedback.impact.safety) || 0}</span></div>` : ''}</div>${mainActions()}${run.mode === 'training' && run.feedback?.explanation ? `<details class="panel" data-disclosure="explanation"><summary>Почему это важно</summary><p>${esc(run.feedback.explanation)}</p></details>` : ''}${w?.status === 'pending' ? '<p class="critical-notice">После продолжения начнётся срочная ситуация.</p>' : ''}`;
+    body = `${heading('Последствие', run.feedback?.timedOut ? 'Время вышло' : 'Что изменилось')}<div class="scene-card feedback-card"><p class="observation">${esc(run.feedback?.text)}</p>${run.feedback?.impact ? `<div class="impact-row"><span>♥ ${Number(run.feedback.impact.loyalty) > 0 ? '+' : ''}${Number(run.feedback.impact.loyalty) || 0}</span><span>◈ ${Number(run.feedback.impact.safety) > 0 ? '+' : ''}${Number(run.feedback.impact.safety) || 0}</span></div>` : ''}</div>${mainActions()}${w?.status === 'pending' ? '<p class="critical-notice">Следующее действие будет срочным.</p>' : ''}`;
   if (run.phase === 'paused')
     body = `${heading('Учебная пауза', 'Можно подумать')}<p>Остаток срочного таймера сохранён.</p>${mainActions()}`;
   if (run.phase === 'result')
