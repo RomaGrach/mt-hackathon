@@ -17,6 +17,11 @@ export function actionSeconds(action) {
       'acknowledge-and-promise': 30,
       acknowledge: 30,
       'verify-service-info': 60,
+      'ask-concern': 15,
+      'check-seat-yourself': 45,
+      'show-seat-yourself': 45,
+      'explain-seat-yourself': 30,
+      'close-seat-yourself': 15,
       'verify-and-request': 45,
       'confirm-and-return-p1': 30,
       'confirm-and-return-p2': 30,
@@ -409,6 +414,22 @@ function sceneFor(s, c) {
     };
   const i = s.incidents[s.focusIncidentId];
   if (!i) return null;
+  if (i.id === 'a-seat' && c.dialogue) {
+    const scene = c.dialogue.scenes[i.sceneId];
+    const lastLine = s.log.findLast(
+      (e) => e.type === 'action' && e.payload?.command?.incidentId === i.id
+    )?.visible?.title;
+    return {
+      id: i.sceneId,
+      title: 'Разговор у места 18',
+      ...copy(scene),
+      dialogue: true,
+      previousLine: lastLine || null,
+      ...(i.sceneId === 'a-verify' && s.flags.seatConcern
+        ? { text: c.dialogue.scenes['a-concern'].text }
+        : {}),
+    };
+  }
   if (i.id === 'a-seat')
     return {
       id: i.sceneId,
@@ -499,6 +520,32 @@ function availableActions(s, c) {
             'Проверить исполнение и сообщить результат пассажиру у места 19'
           ),
         ];
+      if (c.dialogue) {
+        if (i.sceneId === 'a-listen') actions.reverse();
+        if (['a-verify', 'a-concern'].includes(i.sceneId)) {
+          actions.unshift(choose('check-seat-yourself', c.dialogue.labels['check-seat-yourself']));
+          if (i.sceneId === 'a-verify')
+            actions.splice(1, 0, choose('ask-concern', c.dialogue.labels['ask-concern']));
+        }
+        if (i.sceneId === 'a-concern' && s.flags.serviceInfoChecked)
+          actions.push(choose('verify-and-request', c.dialogue.labels['verify-and-request']));
+        if (i.sceneId === 'a-options')
+          actions = [
+            choose('show-seat-yourself', c.dialogue.labels['show-seat-yourself']),
+            choose('explain-seat-yourself', c.dialogue.labels['explain-seat-yourself']),
+            choose('verify-and-request', c.dialogue.labels['verify-and-request']),
+          ];
+        if (i.sceneId === 'a-confirm')
+          actions = [
+            choose('close-seat-yourself', c.dialogue.labels['close-seat-yourself']),
+            choose('leave-seat-without-answer', c.dialogue.labels['leave-seat-without-answer']),
+          ];
+        actions = actions.map((action) =>
+          c.dialogue.labels[action.actionId]
+            ? { ...action, label: c.dialogue.labels[action.actionId] }
+            : action
+        );
+      }
     } else {
       const v = variant(s, c);
       actions =
@@ -594,6 +641,12 @@ export function publicShiftState(s, c, now) {
           text: s.feedback.text,
           impact: copy(s.feedback.impact),
           timedOut: !!s.feedback.timedOut,
+          ...(s.feedback.presentation
+            ? {
+                presentation: s.feedback.presentation,
+                followIncidentId: s.feedback.followIncidentId,
+              }
+            : {}),
           ...(s.mode === 'training' ? { explanation: s.feedback.explanation } : {}),
         }
       : null,
@@ -919,7 +972,58 @@ export function reduceShift(state, command, c, acceptedAt, requestId = null) {
         'Сведения о классе проверены сейчас. ' +
         policy(s, c).fact +
         ' Пропуск приёмки остаётся в истории.';
+    } else if (c.dialogue && id === 'ask-concern') {
+      s.flags.seatConcern = true;
+      a.sceneId = 'a-concern';
+      text = c.dialogue.scenes['a-concern'].text;
+    } else if (c.dialogue && id === 'check-seat-yourself') {
+      s.flags.seatChecked = true;
+      a.sceneId = 'a-options';
+      criterion(s, 'verify-documents', e.eventId);
+      const teamwork = s.criteria.find((r) => r.id === 'confirmed-handoff');
+      Object.assign(teamwork, {
+        possible: null,
+        earned: null,
+        status: 'not_assessed',
+        evidenceEventIds: [],
+      });
+      text = c.dialogue.scenes['a-options'].text;
+    } else if (c.dialogue && ['show-seat-yourself', 'explain-seat-yourself'].includes(id)) {
+      a.sceneId = 'a-confirm';
+      s.flags.seatAssisted = id === 'show-seat-yourself';
+      text =
+        id === 'show-seat-yourself'
+          ? 'Вы показали кресло 18 и помогли пассажиру разместить сумку. «Спасибо, теперь всё понятно», — отвечает пассажир.'
+          : 'Вы показали номер 18 на кресле и сверили его с билетом. Пассажир нашёл своё место.';
+    } else if (c.dialogue && id === 'close-seat-yourself') {
+      a.status = 'resolved';
+      completeTask(s, 'resolve-a', e);
+      completeTask(s, 'return-p1', e);
+      criterion(s, 'return-to-person', e.eventId);
+      delta(s, c.effects.return, 0);
+      const observed = s.observations.find((o) => o.id === 'obs-seats');
+      if (observed)
+        observed.text = 'Пассажир разместился на месте 18 и подтвердил, что вопрос решён.';
+      text =
+        '«Да, теперь всё хорошо. Спасибо, что помогли разобраться». Вы самостоятельно решили вопрос; обращение закрыто.';
+    } else if (c.dialogue && id === 'leave-seat-without-answer') {
+      a.status = 'failed';
+      completeTask(s, 'resolve-a', e, 'failed');
+      completeTask(s, 'return-p1', e, 'failed');
+      delta(s, -5, 0);
+      text =
+        'Вы ушли, не уточнив результат. В истории осталось незавершённое обращение: пассажир не подтвердил, что помощь получена.';
     } else if (id === 'verify-and-request') {
+      if (c.dialogue) {
+        const teamwork = s.criteria.find((r) => r.id === 'confirmed-handoff');
+        if (teamwork.status === 'not_assessed')
+          Object.assign(teamwork, {
+            possible: 1,
+            earned: 0,
+            status: 'assessed',
+            evidenceEventIds: [],
+          });
+      }
       criterion(s, 'verify-documents', e.eventId);
       a.status = 'waiting';
       a.sceneId = 'a-await';
@@ -1078,6 +1182,14 @@ export function reduceShift(state, command, c, acceptedAt, requestId = null) {
         safety: s.scales.safety - before.safety,
       },
       timedOut: isTimeout,
+      ...(c.dialogue &&
+      id !== 'acknowledge-and-promise' &&
+      type === 'choose' &&
+      command.incidentId === 'a-seat' &&
+      !terminal(a) &&
+      a.handoff.status !== 'requested'
+        ? { presentation: 'dialogue', followIncidentId: 'a-seat' }
+        : {}),
     };
     s.phase = 'feedback';
     if (s.step >= s.maxSteps) finish(s, c, now, 'step_limit');

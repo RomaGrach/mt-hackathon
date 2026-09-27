@@ -1,8 +1,9 @@
+import { SEAT_DIALOGUE } from './seat-dialogue.js';
 import { createHash } from 'node:crypto';
 
 // These are design facts read from the supplied dataset, not operating regulations.
 const source = 'materials/Датасет.zip!/photo_2026-09-20_15-09-56.jpg#slide-10';
-export const SHIFT_CONTENT = {
+export const LEGACY_SHIFT_CONTENT = {
   id: 'text-shift-demo',
   version: 'shift-content-1',
   engineVersion: 'shift-2',
@@ -248,6 +249,53 @@ export const SHIFT_CONTENT = {
   ],
 };
 
+// Keep the original publication byte-identical for pinned runs and exact replay.
+export const SHIFT_CONTENT = {
+  ...structuredClone(LEGACY_SHIFT_CONTENT),
+  version: 'shift-content-2',
+  engineVersion: 'shift-3',
+  rulesVersion: 'demo-rubric-2',
+  dialogue: SEAT_DIALOGUE,
+  variants: {
+    'blocked-aisle': {
+      ...structuredClone(LEGACY_SHIFT_CONTENT.variants['blocked-aisle']),
+      scene:
+        'Владелец багажа: «Я только на минуту поставил сумку. На полку одному тяжело поднять». Другие пассажиры обходят её боком; проход нужно освободить.',
+      safeActions: [
+        {
+          id: 'clear-aisle',
+          label: '«Здесь должны свободно проходить люди. Давайте подберём место для сумки»',
+        },
+        {
+          id: 'assist-aisle',
+          label: '«Я помогу вам убрать сумку. Давайте освободим проход вместе»',
+        },
+      ],
+    },
+    'clear-aisle-service-check': {
+      ...structuredClone(LEGACY_SHIFT_CONTENT.variants['clear-aisle-service-check']),
+      scene:
+        'Пассажир: «Я прочитал эту памятку, но здесь всё выглядит иначе. Ей можно верить?» Вы можете сами сверить сведения и объяснить расхождение.',
+    },
+  },
+  rubric: LEGACY_SHIFT_CONTENT.rubric.map((r) =>
+    r.id === 'verify-documents' ? { ...r, label: 'Проверка сведений перед решением' } : r
+  ),
+  localGraphs: {
+    a: {
+      'a-listen': ['a-verify'],
+      'a-verify': ['a-concern', 'a-options', 'a-await'],
+      'a-concern': ['a-options', 'a-await'],
+      'a-options': ['a-confirm', 'a-await'],
+      'a-confirm': [],
+      'a-await': ['a-return'],
+      'a-return': [],
+    },
+    b: structuredClone(LEGACY_SHIFT_CONTENT.localGraphs.b),
+  },
+  debrief: { ...LEGACY_SHIFT_CONTENT.debrief, ...SEAT_DIALOGUE.debrief },
+};
+
 export function canonical(value) {
   if (Array.isArray(value)) return '[' + value.map(canonical).join(',') + ']';
   if (value && typeof value === 'object')
@@ -268,7 +316,14 @@ export function validateShiftContent(c) {
   const check = (ok, text) => {
     if (!ok) errors.push(text);
   };
-  check(c?.engineVersion === 'shift-2', 'Unsupported engine');
+  const template = c?.engineVersion === 'shift-3' ? SHIFT_CONTENT : LEGACY_SHIFT_CONTENT;
+  check(['shift-2', 'shift-3'].includes(c?.engineVersion), 'Unsupported engine');
+  check(
+    c?.engineVersion === 'shift-3'
+      ? canonical(c.dialogue) === canonical(SEAT_DIALOGUE)
+      : !c?.dialogue,
+    'Unsupported dialogue controller'
+  );
   for (const key of ['id', 'version', 'rulesVersion', 'creditFamilyId', 'gamificationVersion'])
     check(typeof c?.[key] === 'string' && /^[a-zA-Z0-9-]{1,64}$/.test(c[key]), 'Invalid ' + key);
   check(c?.maxSteps === 16, 'The published shift-2 controller supports 16 work steps');
@@ -290,13 +345,11 @@ export function validateShiftContent(c) {
   );
   check(
     c?.debrief &&
-      Object.keys(SHIFT_CONTENT.debrief).every(
-        (id) => c.debrief[id]?.why && c.debrief[id]?.alternative
-      ),
+      Object.keys(template.debrief).every((id) => c.debrief[id]?.why && c.debrief[id]?.alternative),
     'Incomplete causal debrief'
   );
   check(
-    c?.localGraphs && canonical(c.localGraphs) === canonical(SHIFT_CONTENT.localGraphs),
+    c?.localGraphs && canonical(c.localGraphs) === canonical(template.localGraphs),
     'Unsupported scene graph: publish a new engine for different transitions'
   );
   const ids = (c?.rubric || []).map((r) => r.id);

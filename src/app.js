@@ -519,16 +519,24 @@ app.addEventListener('click', (event) => {
     perform(async () => {
       acceptRun(await shiftClient.send(action));
       // Observation and waiting return directly to the updated work surface.
-      // Preserve server logs and never auto-advance an assessed choice or timeout.
+      // Continue authored dialogue turns; retain decision history and never skip a timeout.
       if (
-        ['inspect', 'wait'].includes(action.command) &&
+        (['inspect', 'wait'].includes(action.command) ||
+          model.run.feedback?.presentation === 'dialogue') &&
         model.run.phase === 'feedback' &&
         !model.run.feedback?.timedOut
       ) {
         const next = model.run.actions.find(
           (a) => a.command === 'continue' && a.available !== false
         );
+        const follow = model.run.feedback?.followIncidentId;
         if (next) acceptRun(await shiftClient.send(next));
+        if (follow && model.run.phase === 'overview') {
+          const focus = model.run.actions.find(
+            (a) => a.command === 'focus' && a.incidentId === follow && a.available !== false
+          );
+          if (focus) acceptRun(await shiftClient.send(focus));
+        }
       }
       if (model.run.phase === 'result') await reloadBoot();
     });

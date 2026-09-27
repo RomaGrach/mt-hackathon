@@ -2217,3 +2217,8 @@ button:disabled { opacity: .78; cursor: wait; }
 .module-count { flex:none; white-space:nowrap; }
 .course-module summary > span:nth-child(2) { min-width:0; }
 @media(max-width:360px) { .course-module summary { gap:8px; }.module-index { width:32px; height:32px; }.lesson-row { gap:8px; }.lesson-row button { padding:9px; font-size:14px; } }
+/* Dialogue stays in the scene, without a modal or nested card. */
+.dialogue-scene .previous-line { color:#53697b; font-size:14px; line-height:1.45; margin:0 0 16px; padding-left:10px; border-left:2px solid #a9bdcd; }
+.dialogue-scene .previous-line span { display:block; font-weight:700; margin-bottom:4px; }
+.dialogue-scene .speaker { color:#215e79; font-size:15px; font-weight:700; }
+.dialogue-scene .observation { line-height:1.55; }
