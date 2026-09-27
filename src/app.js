@@ -1,3 +1,4 @@
+import { courseLessons } from './course.js';
 import { readPending, savePending, clearPending, isUncertain } from './recovery.js';
 import { api, requestId, ApiError } from './api.js';
 import { render } from './views.js';
@@ -469,6 +470,34 @@ app.addEventListener('click', (event) => {
     return;
   }
 
+  const homeTab = event.target.closest('[data-home-tab]');
+  if (homeTab) {
+    document.querySelectorAll('[data-home-pane]').forEach((p) => {
+      p.hidden = p.dataset.homePane !== homeTab.dataset.homeTab;
+    });
+    document
+      .querySelectorAll('[data-home-tab]')
+      .forEach((b) => b.setAttribute('aria-pressed', String(b === homeTab)));
+    return;
+  }
+  const incidentTarget = event.target.closest('[data-incident-target]');
+  if (incidentTarget && !model.busy) {
+    perform(async () => {
+      const overview = model.run.actions.find(
+        (a) => a.command === 'overview' && a.available !== false
+      );
+      if (!overview) return;
+      acceptRun(await shiftClient.send(overview));
+      const focus = model.run.actions.find(
+        (a) =>
+          a.command === 'focus' &&
+          a.incidentId === incidentTarget.dataset.incidentTarget &&
+          a.available !== false
+      );
+      if (focus) acceptRun(await shiftClient.send(focus));
+    });
+    return;
+  }
   const element = event.target.closest('[data-action],[data-shift-action]');
   if (
     !element ||
@@ -489,6 +518,18 @@ app.addEventListener('click', (event) => {
     element.setAttribute('aria-busy', 'true');
     perform(async () => {
       acceptRun(await shiftClient.send(action));
+      // Observation and waiting return directly to the updated work surface.
+      // Preserve server logs and never auto-advance an assessed choice or timeout.
+      if (
+        ['inspect', 'wait'].includes(action.command) &&
+        model.run.phase === 'feedback' &&
+        !model.run.feedback?.timedOut
+      ) {
+        const next = model.run.actions.find(
+          (a) => a.command === 'continue' && a.available !== false
+        );
+        if (next) acceptRun(await shiftClient.send(next));
+      }
       if (model.run.phase === 'result') await reloadBoot();
     });
     return;
@@ -527,13 +568,18 @@ app.addEventListener('click', (event) => {
     return;
   }
   perform(async () => {
-    if (action === 'course-start')
+    if (action === 'course-start') {
+      const lesson = courseLessons(model.boot.shiftCatalog?.[0]).find(
+        (l) => l.id === element.dataset.lesson
+      );
+      if (!lesson) throw new Error('Смена недоступна. Обновите курс.');
       return startShift({
-        mode: 'training',
-        timingPolicyId: 'standard',
-        serviceClass: 'standard',
-        ...(element.dataset.variant ? { variantId: element.dataset.variant } : {}),
+        mode: lesson.mode,
+        timingPolicyId: lesson.timingPolicyId,
+        serviceClass: lesson.serviceClass,
+        variantId: lesson.variantId,
       });
+    }
     if (action === 'tutorial-start') {
       const active = model.run?.phase !== 'result' ? model.run : null;
       const id = active?.id || model.boot.activeRun?.id;
@@ -709,7 +755,8 @@ await perform(async () => {
   const id = initialHash.match(/^#run\/([a-f0-9-]{36})$/)?.[1];
   if (id) return openRun(id);
   const view = initialHash.slice(1);
-  if (['landing', 'profile', 'leaderboard', 'notices', 'admin'].includes(view)) return navigate(view);
+  if (['landing', 'profile', 'leaderboard', 'notices', 'admin'].includes(view))
+    return navigate(view);
 });
 
 // State refresh is event-driven; the local countdown never polls the API.

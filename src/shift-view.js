@@ -1,3 +1,4 @@
+import { wagonMap, incidentTone, incidentNavigation } from './wagon-view.js';
 import { renderShift as renderPrototype } from './prototype-shift-view.js';
 import { esc, heading } from './ui.js';
 
@@ -79,8 +80,10 @@ function tasks(run) {
   const all = run.tasks || [];
   const active = all.filter((t) => !['completed', 'cancelled'].includes(t.status));
   const done = all.filter((t) => ['completed', 'cancelled'].includes(t.status));
-  const row = (t) =>
-    `<article class="task-row ${t.overdue ? 'overdue' : ''}"><span class="task-check">${t.status === 'completed' ? '✓' : t.overdue ? '!' : '○'}</span><div><strong>${esc(t.label)}</strong><small>${esc(statuses[t.status] || t.status)}${t.overdue ? ' · срок прошёл' : t.dueSeconds != null ? ` · до ${clockLabel(t.dueSeconds)}` : ''}</small></div></article>`;
+  const row = (t) => {
+    const navigation = t.incidentId ? incidentNavigation(run, t.incidentId) : '';
+    return `<article class="task-row ${t.overdue ? 'overdue' : ''}"><span class="task-check">${t.status === 'completed' ? '✓' : t.overdue ? '!' : '○'}</span><div><strong>${esc(t.label)}</strong><small>${esc(statuses[t.status] || t.status)}${t.overdue ? ' · срок прошёл' : t.dueSeconds != null ? ` · до ${clockLabel(t.dueSeconds)}` : ''}</small>${navigation ? `<button class="text-back" ${navigation}>Перейти к ситуации →</button>` : ''}</div></article>`;
+  };
   return `<p class="sheet-intro">${active.length} в работе · ${done.length} завершено. Задачи появляются после приёмки, осмотра и ваших действий.</p>${active.map(row).join('') || '<p>Все известные задачи выполнены.</p>'}${done.length ? `<details><summary>Завершённые · ${done.length}</summary>${done.map(row).join('')}</details>` : ''}`;
 }
 export const tutorialContent = `<div class="tutorial-steps"><article><b>1</b><div><h3>Прочитайте ситуацию</h3><p>Вверху — где вы находитесь и что происходит. Варианты действий находятся под текстом.</p></div></article><article><b>2</b><div><h3>Выберите действие</h3><p>Длительность указана на кнопке. Чтение, карта и список задач не тратят игровое время.</p></div></article><article><b>3</b><div><h3>Проверяйте вагон и задачи</h3><p>Карта помогает перейти к известному делу. Осмотр открывает новые обстоятельства. В задачах видны адресат, срок и состояние.</p></div></article><article><b>4</b><div><h3>Следите за срочным таймером</h3><p>Он идёт в реальном времени, даже при открытой карте. Учебная пауза доступна через «Ещё».</p></div></article><article><b>5</b><div><h3>Завершите смену</h3><p>Выполните дела, откройте разбор решений и сохраните опыт. Повторная практика доступна с главной.</p></div></article></div>`;
@@ -113,25 +116,31 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
   const hud = embedded ? '' : `<header class="app-header game-header">${shiftHud(run)}</header>`;
   const cases = (run.incidents || [])
     .map((item, index) => {
-      const at = actions.findIndex((a) => a.command === 'focus' && a.incidentId === item.id);
+      const navigation = incidentNavigation(run, item.id);
       const current = item.id === run.focusIncidentId;
       const inside = `<span class="case-number">${index + 1}</span><span><strong>${esc(item.label)}</strong><small>${current ? 'Вы здесь · ' : ''}${esc(statuses[item.status] || item.status)}${item.handoffStatus ? ' · ' + esc(statuses[item.handoffStatus] || item.handoffStatus) : ''}</small></span>`;
-      return at >= 0
-        ? `<button class="case-tab ${current ? 'selected' : ''}" data-shift-action="${at}" data-focus-incident="${esc(item.id)}" ${current ? 'aria-current="true"' : ''}>${inside}</button>`
-        : `<div class="case-tab ${current ? 'selected' : ''}">${inside}</div>`;
+      return navigation
+        ? `<button class="case-tab ${incidentTone(item, run)} ${current ? 'selected' : ''}" ${navigation} ${current ? 'aria-current="true"' : ''}>${inside}</button>`
+        : `<div class="case-tab ${incidentTone(item, run)} ${current ? 'selected' : ''}">${inside}</div>`;
     })
     .join('');
   let body = '';
   const mainActions = () =>
     `<div class="shift-actions">${buttons(['choose', 'inspect', 'focus', 'begin', 'continue', 'resume', 'finish'])}</div>`;
   const overviewActions = () => {
-    const hasWork = actions.some(
-      (a, i) =>
-        !used.has(i) &&
-        a.available !== false &&
-        ['focus', 'inspect'].includes(a.command)
+    const actionable = (run.incidents || []).some(
+      (i) =>
+        !['resolved', 'failed'].includes(i.status) &&
+        (i.status !== 'waiting' || i.handoffStatus === 'completed') &&
+        actions.some((a) => a.command === 'focus' && a.incidentId === i.id && a.available !== false)
     );
-    return `<div class="shift-actions">${buttons(hasWork ? ['focus', 'inspect'] : ['wait'])}</div>`;
+    // Consumed actions must not reappear through the fallback renderer.
+    const noNewArea = (run.incidents || []).length >= 2;
+    actions.forEach((a, i) => {
+      if ((a.command === 'wait' && actionable) || (a.command === 'inspect' && noNewArea))
+        used.add(i);
+    });
+    return `<div class="shift-actions">${buttons(['focus', 'inspect', 'wait', 'finish'])}</div>`;
   };
   if (run.phase === 'briefing')
     body = `${heading('Начало смены', 'Вагон готов к приёмке', 'Проверьте вагон, разберитесь с обращениями и выполните задачи.')}<div class="scene-card"><p>Часы начинаются с 08:00. Рабочие действия продвигают время на указанную длительность. Чтение и переходы времени не требуют.</p><p>В срочных ситуациях появится отдельный таймер реального времени.</p></div>${mainActions()}`;
@@ -145,7 +154,11 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
     body = `${heading('Учебная пауза', 'Можно подумать')}<p>Остаток срочного таймера сохранён.</p>${mainActions()}`;
   if (run.phase === 'result')
     body = `${heading('Итог смены', run.result?.title || 'Смена завершена')}<p>${esc(run.result?.summary)}</p>${run.result?.criticalError ? '<p class="critical-notice">Критическая ошибка. Зачёт не получен.</p>' : ''}<details class="panel debrief" data-disclosure="history"><summary>Разбор решений · ${(run.result?.history || []).length} событий</summary>${(run.result?.history || []).map((e, i) => `<article class="debrief-step"><span class="debrief-index">${i + 1}</span><div><h3>${esc(e.title)}</h3><p>${esc(e.text)}</p>${e.explanation ? `<p>${esc(e.explanation)}</p>` : ''}${e.alternative ? `<p>${esc(e.alternative)}</p>` : ''}</div></article>`).join('')}</details>${prototype ? '<button data-reset>Новая тренировка</button>' : ''}`;
-  const tools = buttons(['overview', 'hint', 'pause', 'abort']);
+  const tools =
+    buttons(['overview', 'hint', 'pause', 'abort']) +
+    (run.phase === 'overview'
+      ? `<details class="extra-observation"><summary>Повторный осмотр и ожидание</summary>${actions.map((a, i) => (['wait', 'inspect'].includes(a.command) && used.has(i) ? actionButton(a, i) : '')).join('')}</details>`
+      : '');
   const rest = actions.map((a, i) => (used.has(i) ? '' : actionButton(a, i))).join('');
   body += rest ? `<div class="shift-actions">${rest}</div>` : '';
   if (run.mode === 'training' && run.hintText && ['scene', 'paused'].includes(run.phase))
@@ -153,7 +166,7 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
   const current = run.incidents?.find((i) => i.id === run.focusIncidentId);
   const location =
     run.stage === 'inspection' ? 'Тамбур · приёмка' : current?.label || 'Обзор вагона';
-  const map = `<p class="location-tag">Вы здесь: ${esc(location)}</p><div class="wagon-route" aria-label="Зоны вагона"><span>Тамбур</span><span>Места 18–19</span><span>Проход</span><span>Салон</span></div><h2>Известные ситуации</h2>${cases || '<p>После приёмки станут доступны обращения.</p>'}${run.stage === 'service' && run.incidents?.length < 2 ? '<p class="muted">Салон ещё не осмотрен. Осмотр откроет новые обстоятельства.</p>' : ''}`;
+  const map = `${wagonMap(run)}<h2>Ситуации в вагоне</h2>${cases || '<p>Обращения появятся после приёмки.</p>'}`;
   const count = (run.tasks || []).filter(
     (t) => !['completed', 'cancelled'].includes(t.status)
   ).length;

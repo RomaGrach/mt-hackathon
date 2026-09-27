@@ -581,6 +581,7 @@ export function publicShiftState(s, c, now) {
         label: t.label,
         status: t.status,
         actorId: t.actorId || null,
+        incidentId: t.incidentId || null,
         dueStep: t.dueStep ?? null,
         dueSeconds: t.dueSeconds ?? (t.dueStep == null ? null : t.dueStep * 30),
         overdue: !!t.breachedByEventId && t.status !== 'completed',
