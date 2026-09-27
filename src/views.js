@@ -147,17 +147,19 @@ export function render(model) {
           : shell(
               model.view === 'admin'
                 ? adminView(model.admin)
-                : model.view === 'brief'
-                  ? briefing(model)
-                  : model.view === 'run'
-                    ? runView(model)
-                    : model.view === 'profile'
-                      ? profile(model)
-                      : model.view === 'leaderboard'
-                        ? leaders(model)
-                        : model.view === 'notices'
-                          ? notices(model)
-                          : home(model),
+                : model.view === 'landing'
+                  ? ux.roleLanding(model)
+                  : model.view === 'brief'
+                    ? briefing(model)
+                    : model.view === 'run'
+                      ? runView(model)
+                      : model.view === 'profile'
+                        ? profile(model)
+                        : model.view === 'leaderboard'
+                          ? leaders(model)
+                          : model.view === 'notices'
+                            ? notices(model)
+                            : home(model),
               model
             );
   const error = model.error
