@@ -15,17 +15,53 @@ const buttons = (r, type) =>
 const loc = (r, p) =>
   `Вагон ${r.context.carriage}${p?.seat ? ' · место ' + p.seat : ''}${p?.zone === 'aisle' ? ' · проход' : p?.zone === 'vestibule' ? ' · тамбур' : ''}`;
 function logView(r) {
-  return `<ol class="d2-log">${[...r.log]
+  const entries = r.phase === 'briefing' ? [] : r.log;
+  if (!entries.length)
+    return `<p class="d2-empty-log">${r.phase === 'briefing' ? 'Смена ещё не началась. Здесь появятся события после её начала.' : 'Событий пока нет.'}</p>`;
+  const labels = {
+    begin: 'Начало',
+    appeared: 'Новое обращение',
+    discovered: 'Обнаружено при осмотре',
+    interaction: 'Открыто обращение',
+    dialogue: 'Диалог',
+    action: 'Ваше решение',
+    automatic: 'Автоматический исход',
+    critical_timeout: 'Время истекло',
+    task_created: 'Новая задача',
+    task_completed: 'Задача выполнена',
+    task_failed: 'Задача не выполнена',
+    inspection: 'Осмотр',
+    prevented: 'Профилактика',
+    finished: 'Итог',
+  };
+  return `<ol class="d2-log">${[...entries]
     .reverse()
-    .map(
-      (e) =>
-        `<li><small>Ход ${e.turn} ${e.seat ? '· место ' + e.seat : ''}</small><h3>${esc(e.title)}</h3><p>${esc(e.text)}</p>${e.impact ? `<small>${e.impact.passengers?.length ? 'Лояльность: ' + e.impact.passengers.map((p) => `место ${p.seat} ${delta(p.after - p.before)}`).join(', ') : ''}${e.impact.safety ? ' · Безопасность ' + delta(e.impact.safety) : ''}</small>` : ''}${e.causeEventId ? `<small>После: ${esc(r.log.find((prior) => prior.eventId === e.causeEventId)?.title || 'предыдущего решения')}</small>` : ''}</li>`
-    )
+    .map((e) => {
+      const cause = e.causeEventId && entries.find((prior) => prior.eventId === e.causeEventId);
+      const place = [
+        e.zone === 'aisle' ? 'Проход' : e.zone === 'vestibule' ? 'Тамбур' : '',
+        e.seat ? 'место ' + e.seat : '',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      return `<li><small>${e.turn === 0 ? 'Начало смены' : 'Ход ' + e.turn}${place ? ' · ' + esc(place) : ''}</small><span class="d2-log-kind">${labels[e.type] || 'Событие'}</span><h3>${esc(e.title)}</h3>${e.wasHidden ? '<small>Проблема оставалась незамеченной</small>' : ''}${e.choice ? `<p class="d2-log-choice"><b>Вы:</b> ${esc(e.choice)}</p>` : ''}<p>${esc(e.text)}</p>${e.impact ? `<small>${e.impact.passengers?.length ? 'Лояльность: ' + e.impact.passengers.map((p) => 'место ' + p.seat + ' ' + delta(p.after - p.before)).join(', ') : ''}${e.impact.safety ? ' · Безопасность ' + delta(e.impact.safety) : ''}</small>` : ''}${cause ? `<small>Причина: ${esc(cause.choice || cause.title)}</small>` : ''}</li>`;
+    })
     .join('')}</ol>`;
 }
 function results(r) {
   const x = r.result;
-  return `<section class="d2-results"><p class="eyebrow">Итог смены · ${r.step} / ${r.totalTurns} ходов</p><h1 tabindex="-1">${esc(x.title)}</h1><div class="d2-score"><strong>${num(x.shiftScore)}<small> / 100</small></strong><span>+${num(x.competencyGain)} очков компетенций<br>Сохранено автоматически</span></div><p>${x.fact} из ${x.max} баллов за проблемы. Рабочие задачи баллов не дают.</p>${x.reasons.map((t) => `<p class="d2-notice">${esc(t)}</p>`).join('')}<div class="d2-result-summary"><span>Лояльность <b>${num(x.scales.loyalty)}</b></span><span>Безопасность <b>${num(x.scales.safety)}</b></span><span>Решено <b>${x.stats.resolved}</b></span><span>Автоисходов <b>${x.stats.automatic}</b></span><span>Не обнаружено <b>${x.stats.undiscovered}</b></span><span>Задач выполнено <b>${x.stats.tasksDone}</b></span></div><div class="d2-result-nav">${nav('К курсу')}${nav('Мой прогресс', 'profile')}</div><h2>Решения и последствия</h2>${x.problems.map((p) => `<article class="d2-review"><header><h3>${esc(p.title)}</h3><b>${p.points}/2</b></header><small>Место ${p.seat} · ${p.resolution === 'choice' ? 'Ваше решение' : p.resolution === 'timeout' ? 'Истёк таймер' : !p.discovered ? 'Осталось незамеченным' : 'Автоматический исход'}</small>${p.choice ? `<p>Вы: ${esc(p.choice)}</p>` : ''}<p>${esc(p.text)}</p>${p.points < 2 ? `<p class="d2-alternative">Другой подход: ${esc(p.alternative)}</p>` : ''}</article>`).join('')}<h2>Рабочие задачи</h2>${x.tasks.map((t) => `<article class="d2-review"><h3>${t.status === 'completed' ? '✓' : '○'} ${esc(t.label)}</h3><p>${esc(t.text)}</p></article>`).join('')}<h2>История смены</h2>${logView(r)}</section>`;
+  const review = (problems) =>
+    problems
+      .map(
+        (p) =>
+          `<article class="d2-review"><header><h3>${esc(p.title)}</h3><b>${p.points}/2</b></header><small>Место ${p.seat} · ${p.resolution === 'choice' ? 'Ваше решение' : p.resolution === 'timeout' ? 'Истёк таймер' : !p.discovered ? 'Осталось незамеченным' : 'Автоматический исход'}</small>${p.choice ? `<p>Вы: ${esc(p.choice)}</p>` : ''}<p>${esc(p.text)}</p>${p.points < 2 ? `<p class="d2-alternative">Другой подход: ${esc(p.alternative)}</p>` : ''}</article>`
+      )
+      .join('');
+  const missed = x.problems.filter((p) => p.points < 2),
+    good = x.problems.filter((p) => p.points === 2);
+  const group = (label, count, content) =>
+    `<details class="d2-result-group"><summary><span>${label}</span><b>${count}</b></summary>${content}</details>`;
+  return `<section class="d2-results"><p class="eyebrow">${r.step} из ${r.totalTurns} ходов</p><h1 tabindex="-1">${esc(x.title)}</h1><div class="d2-score"><strong>${num(x.shiftScore)}<small> / 100</small></strong><span>+${num(x.competencyGain)} очков компетенций<br>Сохранено автоматически</span></div>${x.reasons.map((t) => `<p class="d2-notice">${esc(t)}</p>`).join('')}<div class="d2-result-summary"><span>Лояльность <b>${num(x.scales.loyalty)}</b></span><span>Безопасность <b>${num(x.scales.safety)}</b></span></div><p class="d2-result-counts">Решено обращений: <b>${x.stats.resolved}</b> · Пропущено: <b>${x.stats.automatic}</b><br>Задачи: <b>${x.stats.tasksDone}</b> выполнено, <b>${x.stats.tasksMissed}</b> не выполнено</p><div class="d2-result-nav">${nav('К курсу')}${nav('Мой прогресс', 'profile')}</div><div class="d2-result-details">${group('Ошибки и пропуски', missed.length, missed.length ? review(missed) : '<p>Все проблемы получили лучший исход.</p>')}${group('Удачные решения', good.length, good.length ? review(good) : '<p>В этой смене нет решений с максимальной оценкой.</p>')}${group('Рабочие задачи', x.tasks.length, x.tasks.map((t) => `<article class="d2-review"><h3>${t.status === 'completed' ? '✓' : '○'} ${esc(t.label)}</h3><p>${esc(t.text)}</p></article>`).join(''))}${group('Лог событий', r.log.length, logView(r))}</div></section>`;
 }
 export function designShift(r) {
   if (r.phase === 'result') return results(r);
@@ -56,16 +92,16 @@ export function designShift(r) {
       return `<article class="d2-task"><small>${t.seat ? 'Место ' + t.seat : 'Вагон'}</small><h2>${esc(t.label)}</h2><p>${esc(t.text)}</p>${a ? actionButton(r, a, 'Выполнить') : '<small>Сначала завершите текущий осмотр.</small>'}</article>`;
     })
     .join('');
-  return `<div class="shift-console d2-console" data-phase="${r.phase}"><section class="d2-pane ${r.phase === 'scene' ? 'd2-dialogue' : ''}" data-game-pane="scene">${scene}</section><section class="d2-pane" data-game-pane="map" hidden><h1>Вагон</h1>${wagonMap(r)}</section><section class="d2-pane" data-game-pane="tasks" hidden><h1>Рабочие задачи</h1>${tasks || '<p>Все текущие задачи выполнены.</p>'}<div class="d2-primary-actions">${buttons(r, 'inspect')}</div></section><section class="d2-pane" data-game-pane="log" hidden><h1>История смены</h1>${logView(r)}</section><section class="d2-pane" data-game-pane="tools" hidden><h1>Моя смена</h1><p>${esc(r.context.serviceClassLabel)} · ${r.step} из ${r.totalTurns} ходов использовано</p>${nav('На главную')}<p>Можно вернуться в эту смену. Реальный таймер продолжает идти при выходе.</p><details class="d2-exit"><summary>Прервать смену</summary><p>Все оставшиеся дела получат свои последствия. Незавершённая практика не добавит очков компетенций.</p>${buttons(r, 'abort')}</details></section><nav class="d2-tabs" aria-label="Экраны смены">${[
+  return `<div class="shift-console d2-console" data-phase="${r.phase}"><section class="d2-pane ${r.phase === 'scene' ? 'd2-dialogue' : ''}" data-game-pane="scene">${scene}</section><section class="d2-pane" data-game-pane="map" hidden><h1>Вагон</h1>${wagonMap(r)}</section><section class="d2-pane" data-game-pane="tasks" hidden><h1>Рабочие задачи</h1>${tasks || (r.phase === 'briefing' ? '<p>Задачи появятся после начала смены.</p>' : '<p>Все текущие задачи выполнены.</p>')}<div class="d2-primary-actions">${buttons(r, 'inspect')}</div></section><section class="d2-pane" data-game-pane="log" hidden><h1>Лог событий</h1>${logView(r)}</section><section class="d2-pane" data-game-pane="tools" hidden><h1>Моя смена</h1><p>${esc(r.context.serviceClassLabel)} · ${r.step} из ${r.totalTurns} ходов использовано</p>${nav('На главную')}<p>Можно вернуться в эту смену. Реальный таймер продолжает идти при выходе.</p><details class="d2-exit"><summary>Прервать смену</summary><p>Все оставшиеся дела получат свои последствия. Незавершённая практика не добавит очков компетенций.</p>${buttons(r, 'abort')}</details></section><nav class="d2-tabs" aria-label="Экраны смены">${[
     ['scene', '◉', 'Дела'],
     ['map', '▦', 'Вагон'],
     ['tasks', '✓', 'Задачи'],
-    ['log', '≡', 'История'],
+    ['log', '≡', 'Лог'],
     ['tools', '☰', 'Меню'],
   ]
     .map(
       ([id, icon, label]) =>
-        `<button data-game-tab="${id}" ${id === 'scene' ? 'aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><small>${label}</small></button>`
+        `<button data-game-tab="${id}" ${id === 'log' ? 'aria-label="Лог событий"' : ''} ${id === 'scene' ? 'aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><small>${label}</small></button>`
     )
     .join('')}</nav></div>`;
 }
@@ -73,7 +109,7 @@ export function designHud(r) {
   const meter = (key, label) =>
     `<div class="compact-meter ${key}" aria-label="${label}: ${r.scales[key]}"><span>${label} <b>${num(r.scales[key])}</b></span><progress max="100" value="${r.scales[key]}"></progress></div>`;
   const w = r.criticalWindow;
-  return `<div class="game-clock d2-clock"><small>Смена</small><strong>${r.step} / ${r.totalTurns}</strong><progress max="${r.totalTurns}" value="${r.step}" aria-label="Ходы смены"></progress></div><div class="compact-meters">${meter('loyalty', 'Лояльность')}${meter('safety', 'Безопасность')}</div>${w?.status === 'open' ? `<div class="urgent-clock"><span id="shift-seconds">${w.deadline === null ? '∞' : Math.ceil(Math.max(0, w.deadline - r.serverNow) / 1000)}</span> с<span id="shift-time-message" class="sr-only" aria-live="polite"></span></div>` : ''}`;
+  return `<div class="game-clock d2-clock"><small>Ходы смены</small><strong>${r.step} / ${r.totalTurns}</strong><progress max="${r.totalTurns}" value="${r.step}" aria-label="Ходы смены"></progress></div><div class="compact-meters">${meter('loyalty', 'Лояльность')}${meter('safety', 'Безопасность')}</div>${w?.status === 'open' ? `<div class="urgent-clock"><span id="shift-seconds">${w.deadline === null ? '∞' : Math.ceil(Math.max(0, w.deadline - r.serverNow) / 1000)}</span> с<span id="shift-time-message" class="sr-only" aria-live="polite"></span></div>` : ''}`;
 }
 export function designHome(model) {
   const b = model.boot,
@@ -88,7 +124,7 @@ export function designHome(model) {
     `<button class="primary-button" data-action="course-start" data-lesson="${l.id}">${label}</button>`;
   const select = (name, label, items) =>
     `<label>${label}<select name="${name}">${items.map(([id, label]) => `<option value="${id}">${esc(label)}</option>`).join('')}</select></label>`;
-  return `<div class="reading-column d2-home"><div class="d2-home-head"><div><p class="eyebrow">Курс проводника</p><h1 tabindex="-1">Моя смена</h1></div><button class="d2-profile-link" data-action="nav" data-view="profile"><b>${num(p.points)}</b><small>очков компетенций · ур. ${p.level}</small></button></div><section class="d2-next"><small>${active ? 'Смена в работе' : 'Следующая смена · ' + next.number}</small><h2>${active ? 'Вернуться в вагон' : esc(next.title)}</h2><p>${active ? 'Ваши действия сохранены.' : `${esc(next.classLabel)} · ${next.turns} ходов · новые события при каждом прохождении`}</p>${active ? `<button class="primary-button" data-action="resume" data-id="${active.id}">Продолжить смену</button>` : start(next, 'Начать смену')}</section><div class="home-switch" role="group" aria-label="Режим практики"><button data-home-tab="course" aria-pressed="true">Курс</button><button data-home-tab="custom" aria-pressed="false">Своя тренировка</button></div><section data-home-pane="course"><div class="d2-course-title"><h2>План курса</h2><span>${count}/${lessons.length}</span></div><progress class="course-progress" max="${lessons.length}" value="${count}" aria-label="Прогресс курса"></progress><ol class="d2-course">${lessons.map((l) => `<li ${l.id === next.id ? 'class="d2-current"' : ''}><span class="d2-number">${lessonPassed(l, history) ? '✓' : l.number}</span><div><h3>${esc(l.title)}</h3><small>${esc(l.classLabel)} · ${l.turns} ходов${l.id === next.id ? ' · Вы здесь' : ''}</small></div>${!active ? start(l, lessonPassed(l, history) ? 'Повторить' : 'Начать') : ''}</li>`).join('')}</ol></section><section data-home-pane="custom" hidden><h2>Своя тренировка</h2>${
+  return `<div class="reading-column d2-home"><div class="d2-home-head"><div><p class="eyebrow">Курс проводника</p><h1 tabindex="-1">Моя смена</h1></div><button class="d2-profile-link" data-action="nav" data-view="profile"><b>${num(p.points)} очк.</b><small>Уровень ${p.level}</small></button></div><section class="d2-next"><small>${active ? 'Смена в работе' : 'Следующая смена · ' + next.number}</small><h2>${active ? 'Вернуться в вагон' : esc(next.title)}</h2><p>${active ? 'Ваши действия сохранены.' : `${esc(next.classLabel)} · ${next.turns} ходов · новые события при каждом прохождении`}</p>${active ? `<button class="primary-button" data-action="resume" data-id="${active.id}">Продолжить смену</button>` : start(next, 'Начать смену')}</section><div class="home-switch" role="group" aria-label="Режим практики"><button data-home-tab="course" aria-pressed="true">Курс</button><button data-home-tab="custom" aria-pressed="false">Своя тренировка</button></div><section data-home-pane="course"><div class="d2-course-title"><h2>План курса</h2><span>${count}/${lessons.length}</span></div><progress class="course-progress" max="${lessons.length}" value="${count}" aria-label="Прогресс курса"></progress><ol class="d2-course">${lessons.map((l) => `<li ${l.id === next.id ? 'class="d2-current"' : ''}><span class="d2-number">${lessonPassed(l, history) ? '✓' : l.number}</span><div><h3>${esc(l.title)}</h3><small>${esc(l.classLabel)} · ${l.turns} ходов${l.id === next.id ? ' · Вы здесь' : ''}</small></div>${!active ? start(l, lessonPassed(l, history) ? 'Повторить' : 'Начать') : ''}</li>`).join('')}</ol></section><section data-home-pane="custom" hidden><h2>Своя тренировка</h2>${
     active
       ? '<p>Сначала завершите текущую смену.</p>'
       : `<form id="shift-start-form" class="d2-custom">${select(

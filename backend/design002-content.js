@@ -804,7 +804,8 @@ const task = (label, text, success, worst, extra = {}) => ({
 });
 export const DESIGN002_CONTENT = {
   id: 'design002',
-  version: '1.0.2',
+  version: '1.0.3',
+  journalVersion: 2,
   schemaVersion: 2,
   engineVersion: 'shift-4',
   rulesVersion: 'design002-1',

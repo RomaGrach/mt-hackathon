@@ -23,6 +23,12 @@ const shuffle = (items, rng) => {
   return a;
 };
 function log(s, type, title, text, now, extra = {}) {
+  if (s.journalVersion === 2) {
+    const source =
+      s.problems.find((p) => p.id === extra.incidentId) ||
+      s.tasks.find((t) => t.id === extra.taskId);
+    if (source) extra = { seat: source.seat, ...extra };
+  }
   const e = {
     seq: ++s.lastEventSeq,
     eventId: `${s.id}-e${s.lastEventSeq}`,
@@ -396,6 +402,7 @@ export function createDesignShift(c, opts, now) {
   for (const p of hidden) p.hidden = true;
   const s = {
     schemaVersion: 2,
+    ...(c.journalVersion === 2 ? { journalVersion: 2 } : {}),
     engineVersion: 'shift-4',
     id: opts.id,
     profileId: opts.profileId,
@@ -445,8 +452,10 @@ export function createDesignShift(c, opts, now) {
     seed: opts.id,
     decisionCount: 0,
   };
-  addTask(s, c, 'acceptance', { id: 'start', seat: 0 }, now, null);
-  addTask(s, c, 'service', { id: 'start', seat: 0 }, now, null);
+  if (s.journalVersion !== 2) {
+    addTask(s, c, 'acceptance', { id: 'start', seat: 0 }, now, null);
+    addTask(s, c, 'service', { id: 'start', seat: 0 }, now, null);
+  }
   return s;
 }
 function choices(s, c, p) {
@@ -531,7 +540,7 @@ export function reduceDesignShift(state, command, c, now, requestId = null) {
   }
   if (command.type === 'begin') {
     s.phase = 'overview';
-    publish(s, c, now);
+    if (s.journalVersion !== 2) publish(s, c, now);
     log(
       s,
       'begin',
@@ -539,6 +548,11 @@ export function reduceDesignShift(state, command, c, now, requestId = null) {
       'Вы в вагоне 3. Приёмка и обслуживание доступны в задачах.',
       now
     );
+    if (s.journalVersion === 2) {
+      addTask(s, c, 'acceptance', { id: 'start', seat: 0 }, now, null);
+      addTask(s, c, 'service', { id: 'start', seat: 0 }, now, null);
+      publish(s, c, now);
+    }
   }
   if (command.type === 'overview') {
     s.phase = 'overview';
@@ -546,6 +560,11 @@ export function reduceDesignShift(state, command, c, now, requestId = null) {
   }
   if (command.type === 'focus') {
     const p = s.problems.find((p) => p.id === command.incidentId);
+    if (s.journalVersion === 2)
+      log(s, 'interaction', definition(c, p).title, 'Вы открыли обращение.', now, {
+        incidentId: p.id,
+        seat: p.seat,
+      });
     s.focusIncidentId = p.id;
     s.phase = 'scene';
     if (p.startedAt === null) p.startedAt = now;
@@ -633,13 +652,12 @@ export function publicDesignShift(s, c, now) {
     d = p && definition(c, p),
     node = p && p.node !== 'start' ? d.dialogue[p.node] : d;
   const known = s.problems.filter((p) => p.revealed).sort((a, b) => a.knownOrder - b.knownOrder);
-  const visibleLog = s.log.filter(
-    (e) =>
-      !e.hidden ||
-      s.result ||
-      s.problems.find((p) => p.id === e.incidentId)?.revealed ||
-      s.problems.find((p) => p.id === e.incidentId)?.status === 'resolved'
-  );
+  // The briefing has not happened yet. Hidden appearances are retrospective
+  // information, shown only in the final review (discovery has its own entry).
+  const visibleLog =
+    s.phase === 'briefing'
+      ? []
+      : s.log.filter((e) => s.result || (!e.hidden && e.type !== 'prevented'));
   return {
     schemaVersion: 2,
     engineVersion: s.engineVersion,
@@ -677,7 +695,7 @@ export function publicDesignShift(s, c, now) {
       zone: definition(c, p).zone,
       status: p.status === 'active' ? 'open' : p.points === 0 ? 'failed' : 'resolved',
     })),
-    tasks: s.tasks.map((t) => ({
+    tasks: (s.phase === 'briefing' ? [] : s.tasks).map((t) => ({
       id: t.id,
       label: t.label,
       text: c.tasks[t.templateId].text,
@@ -686,18 +704,26 @@ export function publicDesignShift(s, c, now) {
       parentId: t.parentId,
     })),
     passengers: s.passengers.map((p) => ({ seat: p.seat, loyalty: p.loyalty })),
-    log: visibleLog.map((e) => ({
-      seq: e.seq,
-      type: e.type,
-      turn: e.turn,
-      title: e.title,
-      text: e.text,
-      seat: e.seat,
-      impact: e.impact,
-      points: e.points,
-      causeEventId: e.causeEventId,
-      eventId: e.eventId,
-    })),
+    log: visibleLog.map((e) => {
+      const problem = s.problems.find((p) => p.id === e.incidentId);
+      const task = s.tasks.find((t) => t.id === e.taskId);
+      return {
+        seq: e.seq,
+        type: e.type,
+        turn: e.turn,
+        title: e.title,
+        text: e.type === 'appeared' && !s.result ? 'Поступило новое обращение.' : e.text,
+        seat: e.seat ?? problem?.seat ?? task?.seat ?? null,
+        zone: problem ? definition(c, problem).zone : null,
+        choice: e.choice || null,
+        reason: e.reason || null,
+        wasHidden: !!(e.hidden || e.wasHidden),
+        impact: e.impact,
+        points: e.points,
+        causeEventId: e.causeEventId,
+        eventId: e.eventId,
+      };
+    }),
     result: s.result,
   };
 }
