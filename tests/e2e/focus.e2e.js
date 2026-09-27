@@ -31,22 +31,21 @@ async function shot(page, name, info) {
     fullPage: true,
   });
 }
-test('Focus: home leads with the next shift and keeps custom practice optional', async ({
+test('Focus: home has one start action, optional catalogue and one menu', async ({
   page,
 }, info) => {
   await page.goto(origin);
   await idle(page);
   await page.locator('#join-form button').click();
   await idle(page);
-  await expect(page.getByRole('button', { name: 'Начать смену' })).toHaveCount(1);
-  await expect(page.locator('#shift-start-form')).toBeHidden();
+  await expect(page.locator('#shift-start-form > button:visible')).toHaveCount(1);
   await expect(page.locator('[data-action=brief]:visible')).toHaveCount(0);
   await expect(page.locator('.nav-item:visible')).toHaveCount(0);
   await shot(page, 'home', info);
-  await page.getByRole('button', { name: 'Своя тренировка' }).click();
-  await expect(page.locator('#shift-start-form')).toBeVisible();
+  await page.locator('[data-disclosure=catalog] > summary').click();
+  await expect(page.locator('.scenario-card:visible')).toHaveCount(5);
   await page.locator('.site-menu > summary').click();
-  await expect(page.locator('.nav-item:visible')).toHaveCount(4);
+  await expect(page.locator('.nav-item:visible')).toHaveCount(5);
 });
 test('Focus: two work controls, whole-card navigation, all choices remain visible', async ({
   page,

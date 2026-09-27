@@ -2760,3 +2760,10 @@ button.wagon-seat:hover {background:#c5dcfa;transform:none;}
   .course-overview-right .d2-profile-link b { font-size: 13px; }
   .course-overview-right .d2-profile-link small { font-size: 10px; }
 }
+@media (min-width: 1100px) {
+  .playing-shell:has(.d2-console) { background: linear-gradient(115deg,#f6f8f7,#eef5f9 55%,#f8f8f5); }
+  .d2-console { width: calc(100% - 2 * clamp(30px,4vw,96px)); max-width: 1680px; background: #f7fafb; border-inline: 1px solid #dce8ee; box-shadow: 0 0 54px #173c5810; }
+  .d2-console .d2-pane { padding: clamp(28px,2.5vw,52px); }
+  .d2-case-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: clamp(22px,2.5vw,42px); align-items: start; }
+  .d2-work-group { margin: 10px 0 0; min-width: 0; padding: clamp(20px,2vw,32px); border: 1px solid #dce8ee; border-radius: 22px; background: #fffefa; box-shadow: 0 12px 32px #153b570c; }
+}
