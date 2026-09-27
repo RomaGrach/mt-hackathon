@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="730" viewBox="0 0 1280 730" role="img" aria-labelledby="title desc">
+<title id="title">РЕЙС 400 — пользовательский путь</title><desc id="desc">Главная, брифинг, приёмка, обзор. Из обзора игрок открывает один инцидент, выбирает действие, читает последствие и возвращается в изменившуюся обстановку. Критический сигнал запускает отдельное окно только после продолжения. Итог ведёт в профиль и новую практику.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8" fill="none" stroke="#8b7b9b" stroke-width="1.4"/></marker></defs>
+<rect width="1280" height="730" rx="20" fill="#faf9f7"/>
+<g font-family="Segoe UI,Arial,sans-serif"><text x="44" y="48" font-size="13" font-weight="600" fill="#82728f" letter-spacing="2">ОТ ВХОДА ДО РАЗБОРА · ОДИН РЕЙС</text>
+<g stroke="#d4ccd9" fill="#fff" stroke-width="1.2"><rect x="44" y="82" width="200" height="88" rx="14"/><rect x="294" y="82" width="270" height="88" rx="14"/><rect x="614" y="82" width="220" height="88" rx="14"/><rect x="884" y="82" width="350" height="88" rx="14"/></g>
+<g fill="#30273e" font-size="19" font-weight="600"><text x="64" y="118">Главная</text><text x="314" y="118">Брифинг</text><text x="634" y="118">Приёмка</text><text x="904" y="118">Результат проверки</text></g>
+<g fill="#756b7c" font-size="13"><text x="64" y="146">Начать / продолжить</text><text x="314" y="146">Режим · время · участие</text><text x="634" y="146">Сверить готовность</text><text x="904" y="146">Что изменилось → продолжить</text></g>
+<g stroke="#8b7b9b" fill="none" stroke-width="1.6" marker-end="url(#arrow)"><path d="M246 126h40"/><path d="M566 126h40"/><path d="M836 126h40"/><path d="M1060 172v36H188v52"/></g>
+<rect x="44" y="276" width="292" height="142" rx="18" fill="#30273e"/>
+<text x="66" y="314" fill="#d7c6ee" font-size="12" letter-spacing="1.6">ОБЩАЯ КАРТИНА</text><text x="66" y="346" fill="#fff" font-size="24" font-weight="600">Обстановка в вагоне</text><text x="66" y="375" fill="#d7cfe1" font-size="14">Известные дела · шкалы · обещания</text><text x="66" y="397" fill="#d7cfe1" font-size="14">Осмотр раскрывает новые факты</text>
+<g fill="#fff" stroke="#d4ccd9" stroke-width="1.2"><rect x="386" y="276" width="236" height="142" rx="18"/><rect x="672" y="276" width="236" height="142" rx="18"/><rect x="958" y="276" width="276" height="142" rx="18"/></g>
+<g fill="#30273e" font-size="21" font-weight="600"><text x="406" y="322">Один инцидент</text><text x="692" y="322">Действие</text><text x="978" y="322">Последствие</text></g>
+<g fill="#756b7c" font-size="14"><text x="406" y="355">Короткий контекст</text><text x="406" y="378">Другие дела сохраняются</text><text x="692" y="355">Выбрать → выполнить</text><text x="692" y="378">Рабочий шаг +1</text><text x="978" y="355">Шкалы и изменения мира</text><text x="978" y="378">Чтение без таймера</text></g>
+<g stroke="#8b7b9b" fill="none" stroke-width="1.6" marker-end="url(#arrow)"><path d="M338 328h40"/><path d="M624 346h40"/><path d="M910 346h40"/><path d="M504 420v26H188v-22"/><path d="M1096 420v56H188v-22"/></g>
+<g fill="#756b7c" font-size="12"><text x="345" y="258">Открыть: 0 шагов</text><text x="210" y="441">К обстановке: 0 шагов</text><text x="667" y="469">Нет срочного сигнала → обновлённый обзор</text></g>
+<rect x="676" y="526" width="558" height="110" rx="18" fill="#f6ece8" stroke="#c79e91"/>
+<text x="698" y="557" fill="#925b4c" font-size="12" letter-spacing="1">ЕСТЬ СРОЧНЫЙ СИГНАЛ</text><text x="698" y="587" fill="#563b34" font-size="20" font-weight="600">Продолжить → открыть сцену и таймер</text><text x="698" y="614" fill="#886355" font-size="13">Действие / timeout → последствие · учебная пауза с остатком</text>
+<g stroke="#b48a7d" fill="none" stroke-width="1.6" marker-end="url(#arrow)"><path d="M1130 420v98"/><path d="M1236 580h18V345h-12"/></g>
+<rect x="44" y="526" width="570" height="110" rx="18" fill="#eef2ee" stroke="#a4b7a8"/>
+<text x="66" y="557" fill="#617d66" font-size="12" letter-spacing="1">ДЕЛА ПОЛУЧИЛИ ИСХОД</text><text x="66" y="587" fill="#304c36" font-size="20" font-weight="600">Итог рейса → профиль → следующая практика</text><text x="66" y="614" fill="#617d66" font-size="13">Причины, критерии и история · XP отдельно · рейтинг добровольно</text>
+<path d="M130 420v98" fill="none" stroke="#8b7b9b" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="44" y="692" fill="#756b7c" font-size="13">Возврат не обнуляет мир. Скрытые дела не входят в счётчик. Запрос коллеге ещё не означает выполненную помощь.</text>
+</g></svg>
