@@ -23,6 +23,13 @@ for (const file of [
   'src/motivation-view.js',
 ])
   await cp(resolve(file), resolve(output, file));
+await mkdir(resolve(output, 'assets'), { recursive: true });
+for (const file of [
+  'assets/home-journey.webp',
+  'assets/carriage-interior.webp',
+  'assets/course-landscape.webp',
+])
+  await cp(resolve(file), resolve(output, file));
 // One browser entry avoids a sequential module-download waterfall on mobile networks.
 await build({
   entryPoints: ['src/app.js', 'src/preview-app.js'],

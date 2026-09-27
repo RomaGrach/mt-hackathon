@@ -53,7 +53,7 @@ const clockLabel = (seconds) => {
 };
 function actionButton(a, i) {
   const icons = {
-    choose: '✓',
+    choose: '→',
     inspect: '⌕',
     wait: '◷',
     begin: '▶',
@@ -68,7 +68,7 @@ function actionButton(a, i) {
   };
   if (a.command === 'abort')
     return `<details class="inline-confirm"><summary>Прервать смену</summary><p>История сохранится без зачёта. Прервать смену?</p><button class="outline-button" data-shift-action="${i}">Да, прервать</button><button class="text-back" data-cancel-confirm>Продолжить игру</button></details>`;
-  return `<button type="button" class="${['choose', 'begin', 'continue', 'resume', 'finish'].includes(a.command) ? 'option' : 'outline-button'}" data-shift-action="${i}" ${a.command === 'focus' ? `data-focus-incident="${esc(a.incidentId)}"` : ''} ${a.available === false ? 'disabled aria-disabled="true"' : ''}><span class="action-icon" aria-hidden="true">${icons[a.command] || '→'}</span><span class="option-copy"><strong>${esc(a.label)}</strong>${a.unavailableReason ? `<small>${esc(a.unavailableReason)}</small>` : ''}</span>${a.durationSeconds > 0 ? `<span class="action-duration">◷ ${durationLabel(a.durationSeconds)}</span>` : ''}</button>`;
+  return `<button type="button" class="${['choose', 'begin', 'continue', 'resume', 'finish'].includes(a.command) ? 'option' : 'outline-button'}" data-command="${esc(a.command)}" data-shift-action="${i}" ${a.command === 'focus' ? `data-focus-incident="${esc(a.incidentId)}"` : ''} ${a.available === false ? 'disabled aria-disabled="true"' : ''}><span class="action-icon" aria-hidden="true">${icons[a.command] || '→'}</span><span class="option-copy"><strong>${esc(a.label)}</strong>${a.unavailableReason ? `<small>${esc(a.unavailableReason)}</small>` : ''}</span>${a.durationSeconds > 0 ? `<span class="action-duration">◷ ${durationLabel(a.durationSeconds)}</span>` : ''}</button>`;
 }
 export function shiftHud(run) {
   const meter = (key, label) =>

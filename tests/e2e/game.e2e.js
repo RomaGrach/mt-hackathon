@@ -205,7 +205,7 @@ test('узкий экран: навигация с непрочитанными 
   await join(page);
   await expect(page.locator('.nav-item[data-view="notices"]')).toHaveAttribute(
     'aria-label',
-    'Уведомления'
+    /^Уведомления/
   );
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(361);
   await start(page, 'conflict');

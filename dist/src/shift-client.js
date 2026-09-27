@@ -51,7 +51,7 @@ export class ShiftClient {
       this.busy = false;
     }
   }
-  async transmit(pending) {
+  async transmit(pending, reconcile = false) {
     let result;
     try {
       result = await this.transport(pending.path, { method: 'POST', body: pending.body });
@@ -79,8 +79,8 @@ export class ShiftClient {
       );
     clearPending(this.storage, SHIFT_PENDING_KEY);
     this.run = accepted;
-    // A replayed receipt can predate a timeout or a second tab; always GET the latest run.
-    return this.load(accepted.id);
+    // Recovery can return an old receipt. A fresh response is already authoritative.
+    return reconcile || result.__retried ? this.load(accepted.id) : accepted;
   }
   async recover() {
     if (this.busy) throw new ApiError('Запрос уже выполняется.', 'BUSY', 409);
@@ -88,7 +88,7 @@ export class ShiftClient {
     if (!pending) return this.run ? this.load(this.run.id) : null;
     this.busy = true;
     try {
-      return await this.transmit(pending);
+      return await this.transmit(pending, true);
     } finally {
       this.busy = false;
     }

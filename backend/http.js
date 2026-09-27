@@ -24,10 +24,15 @@ const PUBLIC = new Map([
   ['/src/preview-state.js', ['src/preview-state.js', 'text/javascript']],
   ['/src/preview-app.js', ['src/preview-app.js', 'text/javascript']],
   ['/src/motivation-view.js', ['src/motivation-view.js', 'text/javascript']],
+  ['/src/course.js', ['src/course.js', 'text/javascript']],
+  ['/src/wagon-view.js', ['src/wagon-view.js', 'text/javascript']],
   ['/src/admin-view.js', ['src/admin-view.js', 'text/javascript']],
   ['/src/app.js', ['src/app.js', 'text/javascript']],
   ['/src/api.js', ['src/api.js', 'text/javascript']],
   ['/src/views.js', ['src/views.js', 'text/javascript']],
+  ['/assets/home-journey.webp', ['assets/home-journey.webp', 'image/webp']],
+  ['/assets/carriage-interior.webp', ['assets/carriage-interior.webp', 'image/webp']],
+  ['/assets/course-landscape.webp', ['assets/course-landscape.webp', 'image/webp']],
   ['/api/openapi.json', ['docs/openapi.json', 'application/json']],
 ]);
 const error = (code, message, status = 400) => {
@@ -156,7 +161,9 @@ export function createApp({
       if ((method === 'GET' || method === 'HEAD') && PUBLIC.has(pathname)) {
         const [file, type] = PUBLIC.get(pathname);
         const data = await readFile(resolve(fileURLToPath(new URL('../', import.meta.url)), file));
-        res.writeHead(200, { 'Content-Type': type + '; charset=utf-8' });
+        res.writeHead(200, {
+          'Content-Type': type.startsWith('image/') ? type : type + '; charset=utf-8',
+        });
         res.end(method === 'HEAD' ? undefined : data);
         return;
       }

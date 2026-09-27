@@ -36,6 +36,57 @@ let paintedKey = null;
 let sampledAt = performance.now();
 let sampledServer = Date.now();
 let pending = readPending();
+const courseAnimations = new WeakMap();
+
+function toggleCourseModule(section) {
+  const content = section.querySelector('.module-lessons');
+  const previous = courseAnimations.get(section);
+  const opening = previous ? !previous.opening : !section.open;
+  const startHeight = section.open ? content.getBoundingClientRect().height : 0;
+  const startOpacity = section.open ? Number(getComputedStyle(content).opacity) : 0;
+  previous?.animation.cancel();
+  courseAnimations.delete(section);
+
+  if (!content.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    section.open = opening;
+    section.removeAttribute('data-collapsing');
+    content.style.removeProperty('height');
+    content.style.removeProperty('overflow');
+    return;
+  }
+
+  if (opening) {
+    section.open = true;
+    section.removeAttribute('data-collapsing');
+  } else {
+    section.setAttribute('data-collapsing', '');
+  }
+  const endHeight = opening ? content.scrollHeight : 0;
+  content.style.height = `${startHeight}px`;
+  content.style.overflow = 'hidden';
+  const animation = content.animate(
+    [
+      { height: `${startHeight}px`, opacity: startOpacity },
+      { height: `${endHeight}px`, opacity: opening ? 1 : 0 },
+    ],
+    {
+      duration: opening ? 260 : 280,
+      easing: opening ? 'cubic-bezier(.22,1,.36,1)' : 'cubic-bezier(.4,0,.2,1)',
+    }
+  );
+  const state = { animation, opening };
+  courseAnimations.set(section, state);
+  animation.finished
+    .then(() => {
+      if (courseAnimations.get(section) !== state) return;
+      section.open = opening;
+      section.removeAttribute('data-collapsing');
+      content.style.removeProperty('height');
+      content.style.removeProperty('overflow');
+      courseAnimations.delete(section);
+    })
+    .catch(() => {});
+}
 
 function acceptRun(run) {
   if (model.run?.id !== run.id || model.run?.revision !== run.revision) gameTab = 'scene';
@@ -59,7 +110,7 @@ function paint(focus = false) {
     key === paintedKey
       ? [...app.querySelectorAll('details[data-disclosure]')].map((el) => [
           el.dataset.disclosure,
-          el.open,
+          el.hasAttribute('data-collapsing') ? false : el.open,
         ])
       : [];
   const fields =
@@ -96,10 +147,6 @@ function paint(focus = false) {
     if (restored && focusedValue !== undefined) restored.value = focusedValue;
     restored?.focus({ preventScroll: true });
   }
-  app.querySelectorAll('.nav-item').forEach((button) => {
-    const label = button.querySelector('span:nth-child(2)');
-    if (label) button.setAttribute('aria-label', label.textContent);
-  });
   app.setAttribute('aria-busy', String(model.busy));
   if (model.busy)
     app
@@ -430,6 +477,12 @@ function showTutorial() {
 app.addEventListener('click', (event) => {
   const openMenu = app.querySelector('.site-menu[open]');
   if (openMenu && !event.target.closest('.site-menu')) openMenu.open = false;
+  const courseSummary = event.target.closest('.course-module > summary');
+  if (courseSummary) {
+    event.preventDefault();
+    toggleCourseModule(courseSummary.parentElement);
+    return;
+  }
   if (event.target.closest('[data-dismiss-confirm]')) {
     event.target.closest('.inline-confirmation')?.remove();
     return;

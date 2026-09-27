@@ -133,7 +133,9 @@ function leaders(model) {
 function notices(model) {
   if (!model.boot.notices.length)
     return `${title('УВЕДОМЛЕНИЯ', 'Пока нет новых сообщений', 'Здесь появятся новые ситуации, достижения и изменения сроков.')}<section class="panel"><p>Ничего не пропущено. Можно вернуться к учебной попытке.</p>${button('К занятиям', 'nav', 'data-view="home"', 'outline-button')}</section>`;
-  return `${title('ПУЛЬС ОБУЧЕНИЯ', 'Уведомления', 'Новые ситуации, достижения, челленджи и сроки действия сезонных бонусов.')}<div class="notice-actions">${button('Отметить всё прочитанным', 'read-all', '', 'outline-button')}</div><section class="notice-list">${model.boot.notices.map((n) => `<article class="panel notification ${n.readAt ? '' : 'unread'}"><span class="notification-icon">${{ scenario: '◇', challenge: '✧', achievement: '✦', expiry: '⌛', review: '↗' }[n.kind]}</span><div><small>${date(n.at)} ${n.readAt ? '· прочитано' : '· новое'}</small><h3>${esc(n.title)}</h3><p>${esc(n.body)}</p>${n.target ? button('Открыть ситуацию ↗', 'brief', `data-id="${n.target}"`, 'text-back') : ''}</div></article>`).join('')}</section>`;
+  const unread = model.boot.notices.filter((n) => !n.readAt).length;
+  const ordered = [...model.boot.notices].sort((a, b) => Number(!!a.readAt) - Number(!!b.readAt));
+  return `${title('ПУЛЬС ОБУЧЕНИЯ', 'Уведомления', `Непрочитанных: ${unread}. Новые ситуации, достижения, челленджи и сроки действия сезонных бонусов.`)}${unread ? `<div class="notice-actions">${button('Отметить всё прочитанным', 'read-all', '', 'outline-button')}</div>` : ''}<section class="notice-list">${ordered.map((n) => `<article class="panel notification ${n.readAt ? '' : 'unread'}"><span class="notification-icon">${{ scenario: '◇', challenge: '✧', achievement: '✦', expiry: '⌛', review: '↗' }[n.kind]}</span><div><small>${date(n.at)} ${n.readAt ? '· прочитано' : '· новое'}</small><h3>${esc(n.title)}</h3><p>${esc(n.body)}</p>${n.target ? button('Открыть ситуацию ↗', 'brief', `data-id="${n.target}"`, 'text-back') : ''}</div></article>`).join('')}</section>`;
 }
 
 export function render(model) {

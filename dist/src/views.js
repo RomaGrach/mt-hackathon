@@ -1,5 +1,6 @@
+import { adminView } from './admin-view.js';
 import * as ux from './ux.js';
-import { renderShift } from './shift-view.js';
+import { renderShift, sheet } from './shift-view.js';
 import { motivationProfile, motivationLeaders, shiftResultControls } from './motivation-view.js';
 export const esc = (s) =>
   String(s ?? '').replace(
@@ -77,7 +78,7 @@ function legacyProfile(model) {
   const b = model.boot;
   const p = b.profile;
   const a = p.analytics;
-  return `${title('ЛИЧНЫЙ КАБИНЕТ', 'Ваши навыки и прогресс', 'Аналитика учитывает и успешные решения, и ошибки. Практика показана отдельно.')}<div class="profile-layout"><section class="profile-main"><div class="profile-identity"><div class="profile-avatar">${p.level}</div><div><div class="eyebrow muted">УЧЕБНЫЙ ПРОФИЛЬ</div><h2>${esc(p.name)}</h2><span>${esc(p.depot)} · ${esc(crewName(b))}</span></div><div class="identity-score"><strong>${p.totalPoints}</strong><span>ОЧКОВ</span></div></div><div class="panel"><div class="panel-header"><h3>Уровень ${p.level}</h3><span>До следующего: ${p.nextLevelAt - p.totalPoints} очков</span></div><div class="level-track"><span style="width:${p.levelProgress / 3}%"></span></div><p>${p.completed.length} из ${b.catalog.length} модулей зачтено · ${p.seasonPoints} сезонных бонусов</p>${p.bonuses.map((x) => `<small class="bonus-line">+${x.amount} · ${esc(x.reason)} · до ${date(x.expiresAt)}</small>`).join('')}</div><div class="panel"><div class="panel-header"><h3>Карта компетенций</h3><span>Последние ${a.sampleSize} попыток</span></div>${a.skills.map((s) => `<div class="skill-evidence"><div class="skill-row"><span>${names[s.key]}</span><div class="skill-bar"><span style="width:${s.percent || 0}%"></span></div><strong>${s.percent === null ? '—' : s.percent + '%'}</strong></div><small>${s.decisions} решений с наблюдениями · ${s.earned} / ${s.possible} доступных единиц</small><p>${esc(s.advice)}</p></div>`).join('')}<div class="analytics-summary"><span>Таймауты: <strong>${a.timeouts} / ${a.timedDecisions}</strong></span><span>Средняя реакция: <strong>${a.averageReactionSeconds === null ? 'нет данных' : a.averageReactionSeconds + ' с'}</strong></span><span>Критические ошибки: <strong>${a.criticalAttempts}</strong></span></div><small>${esc(a.explanation)}</small></div><div class="panel"><div class="panel-header"><h3>Рекомендованная практика</h3></div>${a.recommended.length ? a.recommended.map((id) => button(esc(b.catalog.find((s) => s.id === id).title) + ' ↗', 'brief', `data-id="${id}"`, 'recommendation')).join('') : '<p>Пока нет выраженного пробела. Пройдите ещё один сценарий или изучите альтернативную ветку.</p>'}</div><div class="panel"><div class="panel-header"><h3>Динамика решений</h3><span>Лояльность / безопасность</span></div>${a.trend.length ? `<div class="trend-chart" role="group" aria-label="Динамика: лояльность и безопасность последних попыток">${a.trend.map((x) => `<div class="trend-item"><div class="trend-bars"><span class="loyalty" style="height:${x.loyalty}%" title="Лояльность ${x.loyalty}"></span><span class="safety" style="height:${x.safety}%" title="Безопасность ${x.safety}"></span></div><small>${x.loyalty} / ${x.safety}</small></div>`).join('')}</div>` : '<p>Динамика появится после завершения попытки.</p>'}</div><div class="panel"><div class="panel-header"><h3>История и разбор</h3><span>${a.attempts} попыток + ${a.practiceAttempts} практик</span></div>${p.history.length ? p.history.map((x) => `<button class="history-row history-button" data-action="history" data-id="${x.runId}"><div><strong>${esc(x.title)}</strong><span>${date(x.completedAt)} · ${x.practice ? 'Практика' : x.grade}</span></div><div><strong>${x.points}</strong><span>Открыть разбор ↗</span></div></button>`).join('') : '<p>Здесь появятся завершённые попытки.</p>'}</div></section><aside class="profile-side"><div class="panel"><div class="panel-header"><h3>Достижения</h3><span>${p.achievements.length} / ${b.achievements.length}</span></div>${b.achievements.map((x) => `<div class="achievement ${p.achievements.includes(x.id) ? 'unlocked' : ''}"><span>${x.icon}</span><div><strong>${esc(x.title)}</strong><small>${p.achievements.includes(x.id) ? 'Получено' : 'Пока не получено'}</small><small>${esc(x.description)}</small></div></div>`).join('')}</div><div class="panel settings"><h3>Настройки профиля</h3><form id="crew-form"><label for="profile-crew">Учебная бригада</label><select id="profile-crew" name="crew">${b.crews.map((c) => `<option value="${c.id}" ${p.crew === c.id ? 'selected' : ''}>${esc(c.name)} · ${esc(c.depot)}</option>`).join('')}</select><button class="outline-button" type="submit">Сохранить бригаду</button></form>${button('Экспорт моих данных', 'export', '', 'outline-button')}${button('Выйти из профиля', 'logout', '', 'outline-button')}${button('Удалить профиль и историю', 'delete', '', 'text-back danger-text')}<small>В демо нет восстановления входа. Выход завершает сессию; удаление также стирает серверные данные этого профиля.</small></div></aside></div>`;
+  return `${title('ЛИЧНЫЙ КАБИНЕТ', 'Ваши навыки и прогресс', 'Аналитика учитывает и успешные решения, и ошибки. Практика показана отдельно.')}<div class="profile-layout"><section class="profile-main"><div class="profile-identity"><div class="profile-avatar">${p.level}</div><div><div class="eyebrow muted">УЧЕБНЫЙ ПРОФИЛЬ</div><h2>${esc(p.name)}</h2><span>${esc(p.depot)} · ${esc(crewName(b))}</span></div><div class="identity-score"><strong>${p.totalPoints}</strong><span>ОЧКОВ</span></div></div><div class="panel"><div class="panel-header"><h3>Уровень ${p.level}</h3><span>До следующего: ${p.nextLevelAt - p.totalPoints} очков</span></div><div class="level-track"><span style="width:${p.levelProgress / 3}%"></span></div><p>${p.completed.length} из ${b.catalog.length} модулей зачтено · ${p.seasonPoints} сезонных бонусов</p>${p.bonuses.map((x) => `<small class="bonus-line">+${x.amount} · ${esc(x.reason)} · до ${date(x.expiresAt)}</small>`).join('')}</div><div class="panel"><div class="panel-header"><h3>Карта компетенций</h3><span>Последние ${a.sampleSize} попыток</span></div>${a.skills.map((s) => `<div class="skill-evidence"><div class="skill-row"><span>${names[s.key]}</span><div class="skill-bar"><span style="width:${s.percent || 0}%"></span></div><strong>${s.percent === null ? '—' : s.percent + '%'}</strong></div><small>${s.decisions} решений с наблюдениями · ${s.earned} / ${s.possible} доступных единиц</small><p>${esc(s.advice)}</p></div>`).join('')}<div class="analytics-summary"><span>Таймауты: <strong>${a.timeouts} / ${a.timedDecisions}</strong></span><span>Средняя реакция: <strong>${a.averageReactionSeconds === null ? 'нет данных' : a.averageReactionSeconds + ' с'}</strong></span><span>Критические ошибки: <strong>${a.criticalAttempts}</strong></span></div><small>${esc(a.explanation)}</small></div><div class="panel"><div class="panel-header"><h3>Рекомендованная практика</h3></div>${a.recommended.length ? a.recommended.map((id) => button(esc(b.catalog.find((s) => s.id === id).title) + ' ↗', 'brief', `data-id="${id}"`, 'recommendation')).join('') : '<p>Пока нет выраженного пробела. Пройдите ещё один сценарий или изучите альтернативную ветку.</p>'}</div><div class="panel"><div class="panel-header"><h3>Динамика решений</h3><span>Лояльность / безопасность</span></div>${a.trend.length ? `<div class="trend-chart" role="group" aria-label="Динамика: лояльность и безопасность последних попыток">${a.trend.map((x) => `<div class="trend-item"><div class="trend-bars"><span class="loyalty" style="height:${x.loyalty}%" title="Лояльность ${x.loyalty}"></span><span class="safety" style="height:${x.safety}%" title="Безопасность ${x.safety}"></span></div><small>${x.loyalty} / ${x.safety}</small></div>`).join('')}</div>` : '<p>Динамика появится после завершения попытки.</p>'}</div><div class="panel"><div class="panel-header"><h3>История и разбор</h3><span>${a.attempts} попыток + ${a.practiceAttempts} практик</span></div>${p.history.length ? p.history.map((x) => `<button class="history-row history-button" data-action="history" data-id="${x.runId}"><div><strong>${esc(x.title)}</strong><span>${date(x.completedAt)} · ${x.practice ? 'Практика' : x.grade}</span></div><div><strong>${x.points}</strong><span>Открыть разбор ↗</span></div></button>`).join('') : '<p>Здесь появятся завершённые попытки.</p>'}</div></section><aside class="profile-side"><div class="panel"><div class="panel-header"><h3>Достижения</h3><span>${p.achievements.length} / ${b.achievements.length}</span></div>${b.achievements.map((x) => `<div class="achievement ${p.achievements.includes(x.id) ? 'unlocked' : ''}"><span>${x.icon}</span><div><strong>${esc(x.title)}</strong><small>${p.achievements.includes(x.id) ? 'Получено' : 'Пока не получено'}</small><small>${esc(x.description)}</small></div></div>`).join('')}</div><div class="panel settings"><h3>Настройки профиля</h3><p class="muted-text">Бригада назначается учебному профилю и используется только для сопоставимого рейтинга.</p>${button('Экспорт моих данных', 'export', '', 'outline-button')}${button('Выйти из профиля', 'logout', '', 'outline-button')}${button('Удалить профиль и историю', 'delete', '', 'text-back danger-text')}<small>В демо нет восстановления входа. Выход завершает сессию; удаление также стирает серверные данные этого профиля.</small></div></aside></div>`;
 }
 
 function legacyLeaders(model) {
@@ -109,7 +110,8 @@ function profile(model) {
   return (
     motivationProfile(model) +
     '<div class="reading-column">' +
-    settings +
+    '<button class="learn-entry" data-open-sheet="settings">⚙ Настройки профиля →</button>' +
+    sheet('settings', 'Настройки профиля', settings) +
     '<details class="panel" data-disclosure="legacy-profile"><summary>История, баллы и достижения отдельных сценариев v1</summary><p>Архивная система не прибавляется к XP и СП новой смены.</p>' +
     legacy.replaceAll('<h1', '<h2').replaceAll('</h1>', '</h2>') +
     '</details></div>'
@@ -131,29 +133,37 @@ function leaders(model) {
 function notices(model) {
   if (!model.boot.notices.length)
     return `${title('УВЕДОМЛЕНИЯ', 'Пока нет новых сообщений', 'Здесь появятся новые ситуации, достижения и изменения сроков.')}<section class="panel"><p>Ничего не пропущено. Можно вернуться к учебной попытке.</p>${button('К занятиям', 'nav', 'data-view="home"', 'outline-button')}</section>`;
-  return `${title('ПУЛЬС ОБУЧЕНИЯ', 'Уведомления', 'Новые ситуации, достижения, челленджи и сроки действия сезонных бонусов.')}<div class="notice-actions">${button('Отметить всё прочитанным', 'read-all', '', 'outline-button')}</div><section class="notice-list">${model.boot.notices.map((n) => `<article class="panel notification ${n.readAt ? '' : 'unread'}"><span class="notification-icon">${{ scenario: '◇', challenge: '✧', achievement: '✦', expiry: '⌛', review: '↗' }[n.kind]}</span><div><small>${date(n.at)} ${n.readAt ? '· прочитано' : '· новое'}</small><h3>${esc(n.title)}</h3><p>${esc(n.body)}</p>${n.target ? button('Открыть ситуацию ↗', 'brief', `data-id="${n.target}"`, 'text-back') : ''}</div></article>`).join('')}</section>`;
+  const unread = model.boot.notices.filter((n) => !n.readAt).length;
+  const ordered = [...model.boot.notices].sort((a, b) => Number(!!a.readAt) - Number(!!b.readAt));
+  return `${title('ПУЛЬС ОБУЧЕНИЯ', 'Уведомления', `Непрочитанных: ${unread}. Новые ситуации, достижения, челленджи и сроки действия сезонных бонусов.`)}${unread ? `<div class="notice-actions">${button('Отметить всё прочитанным', 'read-all', '', 'outline-button')}</div>` : ''}<section class="notice-list">${ordered.map((n) => `<article class="panel notification ${n.readAt ? '' : 'unread'}"><span class="notification-icon">${{ scenario: '◇', challenge: '✧', achievement: '✦', expiry: '⌛', review: '↗' }[n.kind]}</span><div><small>${date(n.at)} ${n.readAt ? '· прочитано' : '· новое'}</small><h3>${esc(n.title)}</h3><p>${esc(n.body)}</p>${n.target ? button('Открыть ситуацию ↗', 'brief', `data-id="${n.target}"`, 'text-back') : ''}</div></article>`).join('')}</section>`;
 }
 
 export function render(model) {
   const content =
-    !model.boot && !model.sessionKnown
-      ? '<main id="main" class="loading-page"><h1 tabindex="-1">Открываем учебный рейс…</h1><p>Проверяем сессию и сохранённый прогресс. При ошибке используйте обновление состояния.</p></main>'
-      : !model.boot
-        ? welcome()
-        : shell(
-            model.view === 'brief'
-              ? briefing(model)
-              : model.view === 'run'
-                ? runView(model)
-                : model.view === 'profile'
-                  ? profile(model)
-                  : model.view === 'leaderboard'
-                    ? leaders(model)
-                    : model.view === 'notices'
-                      ? notices(model)
-                      : home(model),
-            model
-          );
+    model.view === 'admin'
+      ? '<main id="main" class="standalone-admin">' + adminView(model.admin) + '</main>'
+      : !model.boot && !model.sessionKnown
+        ? '<main id="main" class="loading-page"><h1 tabindex="-1">Открываем учебный рейс…</h1><p>Проверяем сессию и сохранённый прогресс. При ошибке используйте обновление состояния.</p></main>'
+        : !model.boot
+          ? welcome()
+          : shell(
+              model.view === 'admin'
+                ? adminView(model.admin)
+                : model.view === 'landing'
+                  ? ux.roleLanding(model)
+                  : model.view === 'brief'
+                    ? briefing(model)
+                    : model.view === 'run'
+                      ? runView(model)
+                      : model.view === 'profile'
+                        ? profile(model)
+                        : model.view === 'leaderboard'
+                          ? leaders(model)
+                          : model.view === 'notices'
+                            ? notices(model)
+                            : home(model),
+              model
+            );
   const error = model.error
     ? '<section class="error-toast" role="alert" aria-label="Действие требует проверки"><strong>' +
       esc(model.error) +
@@ -168,9 +178,9 @@ export function render(model) {
   return (
     '<a class="skip-link" href="#main">К содержимому</a>' +
     connection +
-    '<div class="busy-indicator ' +
-    (model.busy ? 'visible' : '') +
-    '" role="status">Проверяем состояние. Действие отправляется один раз…</div>' +
+    '<span class="sr-only" role="status">' +
+    (model.busy ? 'Сохранение' : '') +
+    '</span>' +
     error +
     content
   );

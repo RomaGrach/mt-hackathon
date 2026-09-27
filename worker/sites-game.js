@@ -45,6 +45,20 @@ function responseForStatic(request, path) {
     });
   const key = path === '/index.html' ? '/' : path;
   if (!(key in assets)) return new Response('Not found', { status: 404, headers: security });
+  const asset = assets[key];
+  if (asset?.base64)
+    return new Response(
+      request.method === 'HEAD'
+        ? null
+        : Uint8Array.from(atob(asset.base64), (c) => c.charCodeAt(0)),
+      {
+        headers: {
+          ...security,
+          'content-type': asset.contentType,
+          'cache-control': 'public, max-age=3600',
+        },
+      }
+    );
   const type = key.endsWith('.js')
     ? 'text/javascript'
     : key.endsWith('.css')
@@ -62,9 +76,18 @@ function responseForStatic(request, path) {
 async function gameRequest(request, env, context) {
   const SQL = await sqlReady;
   for (let attempt = 0; attempt < 6; attempt++) {
-    const previous = await env.DB.prepare(
-      'SELECT revision, image FROM game_snapshot WHERE id=1'
-    ).first();
+    let previous;
+    try {
+      previous = await env.DB.prepare(
+        'SELECT revision, image FROM game_snapshot WHERE id=1'
+      ).first();
+    } catch (error) {
+      if (!String(error?.message).includes('no such table: game_snapshot')) throw error;
+      await env.DB.prepare(
+        'CREATE TABLE IF NOT EXISTS game_snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), revision INTEGER NOT NULL, image BLOB NOT NULL)'
+      ).run();
+      previous = null;
+    }
     const store = new SqlJsStore(SQL, await unpack(previous?.image));
     let server;
     try {

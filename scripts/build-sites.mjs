@@ -29,9 +29,21 @@ const assets = Object.fromEntries(
     ])
   )
 );
+for (const file of [
+  'assets/home-journey.webp',
+  'assets/carriage-interior.webp',
+  'assets/course-landscape.webp',
+])
+  assets['/' + file] = {
+    contentType: 'image/webp',
+    base64: (await readFile(resolve('dist', file))).toString('base64'),
+  };
+const openapi = await readFile(resolve('docs/openapi.json'), 'utf8');
 const source = (await readFile(resolve('worker/sites-game.js'), 'utf8'))
-  .replace('__STATIC_ASSETS__', JSON.stringify(assets))
-  .replace('__OPENAPI__', JSON.stringify(await readFile(resolve('docs/openapi.json'), 'utf8')));
+  .replace('__STATIC_ASSETS__', () => JSON.stringify(assets))
+  .replace('__OPENAPI__', () => JSON.stringify(openapi));
+if (source.includes('__STATIC_ASSETS__') || source.includes('__OPENAPI__'))
+  throw new Error('Sites asset template was not fully expanded');
 await mkdir(resolve('dist', 'server'), { recursive: true });
 await mkdir(resolve('dist', '.openai'), { recursive: true });
 await build({
