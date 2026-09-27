@@ -334,7 +334,7 @@ export function createDesignShift(c, opts, now) {
     'Недопустимые условия смены.'
   );
   const rng = random(opts.id),
-    count = pol.rows * (pol.sides[0] + pol.sides[1]);
+    count = pol.layout?.seats ?? pol.rows * (pol.sides[0] + pol.sides[1]);
   const seats = shuffle(
     Array.from({ length: count }, (_, i) => i + 1),
     rng
@@ -409,6 +409,7 @@ export function createDesignShift(c, opts, now) {
       sides: pol.sides,
       rows: pol.rows,
       seats: count,
+      ...(pol.layout ? { layout: structuredClone(pol.layout) } : {}),
     },
     comparisonGroup: {
       scenarioId: c.id,

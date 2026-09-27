@@ -9,6 +9,7 @@ import { Service } from './service.js';
 import { siteAdminAccess, adminUsers } from './admin.js';
 
 const PUBLIC = new Map([
+  ['/src/carriage-layouts.js', ['src/carriage-layouts.js', 'text/javascript']],
   ['/src/design002-view.js', ['src/design002-view.js', 'text/javascript']],
   ['/', ['index.html', 'text/html']],
   ['/index.html', ['index.html', 'text/html']],

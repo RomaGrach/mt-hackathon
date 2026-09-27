@@ -1,3 +1,4 @@
+import { CARRIAGE_LAYOUTS } from '../src/carriage-layouts.js';
 // Authoring and balance for docs/design/design002.md. Synthetic training situations.
 const choice = (id, label, points, text, extra = {}) => ({ id, label, points, text, ...extra });
 const issue = (id, title, category, text, choices, extra = {}) => ({
@@ -803,7 +804,7 @@ const task = (label, text, success, worst, extra = {}) => ({
 });
 export const DESIGN002_CONTENT = {
   id: 'design002',
-  version: '1.0.1',
+  version: '1.0.2',
   schemaVersion: 2,
   engineVersion: 'shift-4',
   rulesVersion: 'design002-1',
@@ -811,12 +812,18 @@ export const DESIGN002_CONTENT = {
   reviewStatus: 'synthetic-training',
   creditFamilyId: 'design002',
   timingPolicies: { standard: 60000, extended: 120000, untimed: null },
-  policies: {
-    standard: { label: 'Стандарт', fact: 'Учебная компоновка 3 + 2', sides: [3, 2], rows: 12 },
-    comfort: { label: 'Комфорт', fact: 'Учебная компоновка 2 + 2', sides: [2, 2], rows: 12 },
-    business: { label: 'Бизнес', fact: 'Учебная компоновка 2 + 2', sides: [2, 2], rows: 10 },
-    first: { label: 'Первый', fact: 'Учебная компоновка 2 + 1', sides: [2, 1], rows: 8 },
-  },
+  policies: Object.fromEntries(
+    Object.entries(CARRIAGE_LAYOUTS).map(([id, layout]) => [
+      id,
+      {
+        label: layout.label,
+        fact: 'Компоновка ' + layout.sides.join(' + '),
+        sides: layout.sides,
+        rows: layout.rows.length,
+        layout,
+      },
+    ])
+  ),
   variants: {
     orientation: {
       id: 'orientation',

@@ -1,3 +1,4 @@
+import { wagonMap } from './wagon-view.js';
 import { esc } from './ui.js';
 import { courseLessons, lessonPassed } from './course.js';
 const nav = (text, view = 'home') =>
@@ -21,23 +22,6 @@ function logView(r) {
         `<li><small>Ход ${e.turn} ${e.seat ? '· место ' + e.seat : ''}</small><h3>${esc(e.title)}</h3><p>${esc(e.text)}</p>${e.impact ? `<small>${e.impact.passengers?.length ? 'Лояльность: ' + e.impact.passengers.map((p) => `место ${p.seat} ${delta(p.after - p.before)}`).join(', ') : ''}${e.impact.safety ? ' · Безопасность ' + delta(e.impact.safety) : ''}</small>` : ''}${e.causeEventId ? `<small>После: ${esc(r.log.find((prior) => prior.eventId === e.causeEventId)?.title || 'предыдущего решения')}</small>` : ''}</li>`
     )
     .join('')}</ol>`;
-}
-function mapView(r) {
-  const sides = r.context.sides,
-    per = sides[0] + sides[1];
-  const known = r.incidents.filter((i) => i.status === 'open');
-  const seat = (n) => {
-    const cases = known.filter((i) => i.seat === n),
-      p = r.passengers.find((p) => p.seat === n);
-    const focus = r.actions.find((a) => a.command === 'focus' && a.incidentId === cases[0]?.id);
-    return `<button class="d2-seat ${cases.length ? 'd2-marked' : ''} ${p ? '' : 'd2-empty'}" ${focus ? `data-shift-action="${r.actions.indexOf(focus)}"` : 'disabled'} aria-label="Место ${n}${cases.length ? ': ' + esc(cases.map((i) => i.label).join(', ')) : p ? ', пассажир' : ', свободно'}">${n}${cases.length ? '<span aria-hidden="true">●</span>' : ''}</button>`;
-  };
-  return `<p class="d2-caption">${esc(r.context.serviceClassLabel)} · ${sides.join(' + ')} · ${r.context.seats} учебных мест</p><div class="d2-carriage"><div class="d2-vestibule">Тамбур · служебная зона</div>${Array.from({ length: r.context.rows }, (_, row) => `<div class="d2-seat-row" style="--d2-cols:${per + 1}">${Array.from({ length: sides[0] }, (_, col) => seat(row * per + col + 1)).join('')}<span class="d2-aisle">${row + 1}</span>${Array.from({ length: sides[1] }, (_, col) => seat(row * per + sides[0] + col + 1)).join('')}</div>`).join('')}<div class="d2-vestibule">Санитарная зона · тамбур</div></div><p class="d2-caption">● Известное обращение. Цвет не указывает срочность.<br>Учебная схема с условными номерами, не утверждённый план ВСМ.</p>${known
-    .map((i) => {
-      const a = r.actions.find((a) => a.command === 'focus' && a.incidentId === i.id);
-      return a ? actionButton(r, a, `Место ${i.seat} · ${i.label}`) : '';
-    })
-    .join('')}`;
 }
 function results(r) {
   const x = r.result;
@@ -72,7 +56,7 @@ export function designShift(r) {
       return `<article class="d2-task"><small>${t.seat ? 'Место ' + t.seat : 'Вагон'}</small><h2>${esc(t.label)}</h2><p>${esc(t.text)}</p>${a ? actionButton(r, a, 'Выполнить') : '<small>Сначала завершите текущий осмотр.</small>'}</article>`;
     })
     .join('');
-  return `<div class="shift-console d2-console" data-phase="${r.phase}"><section class="d2-pane ${r.phase === 'scene' ? 'd2-dialogue' : ''}" data-game-pane="scene">${scene}</section><section class="d2-pane" data-game-pane="map" hidden><h1>Вагон</h1>${mapView(r)}</section><section class="d2-pane" data-game-pane="tasks" hidden><h1>Рабочие задачи</h1>${tasks || '<p>Все текущие задачи выполнены.</p>'}<div class="d2-primary-actions">${buttons(r, 'inspect')}</div></section><section class="d2-pane" data-game-pane="log" hidden><h1>История смены</h1>${logView(r)}</section><section class="d2-pane" data-game-pane="tools" hidden><h1>Моя смена</h1><p>${esc(r.context.serviceClassLabel)} · ${r.step} из ${r.totalTurns} ходов использовано</p>${nav('На главную')}<p>Можно вернуться в эту смену. Реальный таймер продолжает идти при выходе.</p><details class="d2-exit"><summary>Прервать смену</summary><p>Все оставшиеся дела получат свои последствия. Незавершённая практика не добавит очков компетенций.</p>${buttons(r, 'abort')}</details></section><nav class="d2-tabs" aria-label="Экраны смены">${[
+  return `<div class="shift-console d2-console" data-phase="${r.phase}"><section class="d2-pane ${r.phase === 'scene' ? 'd2-dialogue' : ''}" data-game-pane="scene">${scene}</section><section class="d2-pane" data-game-pane="map" hidden><h1>Вагон</h1>${wagonMap(r)}</section><section class="d2-pane" data-game-pane="tasks" hidden><h1>Рабочие задачи</h1>${tasks || '<p>Все текущие задачи выполнены.</p>'}<div class="d2-primary-actions">${buttons(r, 'inspect')}</div></section><section class="d2-pane" data-game-pane="log" hidden><h1>История смены</h1>${logView(r)}</section><section class="d2-pane" data-game-pane="tools" hidden><h1>Моя смена</h1><p>${esc(r.context.serviceClassLabel)} · ${r.step} из ${r.totalTurns} ходов использовано</p>${nav('На главную')}<p>Можно вернуться в эту смену. Реальный таймер продолжает идти при выходе.</p><details class="d2-exit"><summary>Прервать смену</summary><p>Все оставшиеся дела получат свои последствия. Незавершённая практика не добавит очков компетенций.</p>${buttons(r, 'abort')}</details></section><nav class="d2-tabs" aria-label="Экраны смены">${[
     ['scene', '◉', 'Дела'],
     ['map', '▦', 'Вагон'],
     ['tasks', '✓', 'Задачи'],

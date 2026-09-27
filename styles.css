@@ -2328,3 +2328,34 @@ button:disabled { opacity: .78; cursor: wait; }
 .d2-settings button {margin:8px 0;}
 @media(max-width:400px) {.d2-console .d2-pane{padding:17px 14px}.d2-pane h1{font-size:23px}.d2-lead{font-size:16px}.d2-home-head{gap:10px}.d2-course li{gap:8px;padding:14px 4px}.d2-course h3{font-size:14px}.d2-score{gap:16px}.d2-score>strong{font-size:40px}.d2-score>span{font-size:12px}.playing-shell .game-header:has(.d2-clock){padding:8px 12px;gap:12px}}
 @media(max-height:560px) {.d2-console .d2-dialogue{display:block;overflow-y:auto}.d2-dialogue .d2-scene-text{overflow:visible}.d2-console .d2-choices{max-height:none;overflow:visible}}
+
+/* Full carriage: preserve readable seats, scroll the pane instead of scaling the plan. */
+.wagon-map {max-width:740px;margin:0 auto;background:transparent;border:0;border-radius:0;padding:0;}
+.wagon-summary {display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;font-size:14px;color:#496078;margin:8px 0 16px;}
+.wagon-summary strong {color:#233e58;}
+.wagon-body {width:100%;max-width:340px;margin:0 auto 16px;background:#edf4f8;border:2px solid #a8bbc9;border-radius:36px;overflow:hidden;}
+.wagon-service {display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;background:#dbe7ee;color:#35536d;padding:16px 10px;font-size:14px;line-height:1.4;}
+.wagon-saloon {padding:0 12px 14px;}
+.wagon-zone-title {font-size:12px;text-align:center;color:#516c82;margin:14px 0;}
+.wagon-row {display:grid;grid-template-columns:repeat(var(--left),minmax(0,1fr)) 28px repeat(var(--right),minmax(0,1fr));gap:5px;margin:9px 0;}
+.wagon-seat {display:grid;place-items:center;position:relative;min-width:0;height:38px;min-height:38px;padding:0;background:#cbdce7;border:1px solid #91aabc;border-bottom:4px solid #8aa5b8;border-radius:6px 6px 8px 8px;color:#173f5c;font-size:14px;font-weight:600;line-height:1;box-shadow:none;transform:none;}
+.wagon-seat.empty {background:#e1eaf0;color:#395870;}
+.wagon-seat.marked {background:#d7e8ff;border-color:#4b76b2;}
+.wagon-seat-number {position:static;}
+.wagon-seat-dot {position:absolute;top:-5px;right:-3px;width:10px;height:10px;border:2px solid #fff;border-radius:50%;background:#3865a7;}
+button.wagon-seat:hover {background:#c5dcfa;transform:none;}
+.wagon-seat:focus-visible,.wagon-pin:focus-visible,.wagon-case:focus-visible {outline:3px solid #244e7e;outline-offset:3px;}
+.wagon-aisle {display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:38px;border-inline:1px dashed #b9cbd7;}
+.wagon-pin {display:grid;place-items:center;width:28px;min-width:0;min-height:32px;height:32px;border:0;background:transparent;color:#3865a7;padding:0;font-size:19px;box-shadow:none;}
+.wagon-pin.urgent {color:#ae413c;}.wagon-pin.resolved {color:#287355;}
+.wagon-partition {margin:18px -12px;padding:10px 8px;border-block:2px solid #b8ccd9;text-align:center;background:#dfeaf1;color:#405d74;font-size:12px;}
+.wagon-play {grid-column:span 2;display:grid;place-items:center;background:#d4e9da;border:1px solid #9cbfa7;border-radius:5px;color:#315740;font-size:14px;min-height:38px;}
+.wagon-rooms {display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px 12px 0;}
+.wagon-rooms>div {min-height:70px;display:grid;place-items:center;border:1px solid #a8becb;border-radius:8px;background:#e4eef3;color:#36546c;font-size:14px;}
+.wagon-first .wagon-seat {background:#eee5d4;border-color:#b9a583;color:#59482d;}.wagon-first .wagon-seat.marked {background:#d7e8ff;border-color:#4b76b2;}
+.wagon-zone-pins {display:flex;justify-content:center;gap:12px;padding:4px 8px;}
+.wagon-key {font-size:14px;color:#3c6086;line-height:1.5;}
+.wagon-case {width:100%;display:flex;gap:12px;align-items:center;text-align:left;border:0;border-bottom:1px solid #d0dde6;background:transparent;box-shadow:none;padding:14px 0;color:#274b6a;min-height:54px;}
+.wagon-case>span:nth-child(2){flex:1;display:grid;gap:4px;}.wagon-case strong{font-size:15px;line-height:1.4;}.wagon-case small {font-size:13px;}
+.wagon-source {font-size:12px;line-height:1.5;color:#576e82;margin-top:18px;}
+.wagon-legacy {max-width:340px;margin:14px auto;}.wagon-legacy p {font-size:13px;color:#576e82;}.wagon-old-seats {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
