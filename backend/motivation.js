@@ -815,7 +815,7 @@ export class Motivation {
     const results = this.store
       .all('SELECT document FROM results WHERE profile_id=? ORDER BY id DESC LIMIT 100', profile)
       .map((x) => JSON.parse(x.document))
-      .filter((r) => r.schemaVersion === 2);
+      .filter((r) => r.schemaVersion === 2 && r.engineVersion !== 'shift-4');
     const groups = new Map();
     for (const r of results) {
       const key = canonical({ comparison: r.comparisonGroup, mode: r.mode });

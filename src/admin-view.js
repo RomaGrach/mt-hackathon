@@ -35,7 +35,7 @@ export function adminView(data) {
                 i
               ) => `<details class="admin-user" data-disclosure="admin-user-${data.offset + i}">
       <summary><span class="admin-identity"><strong>${esc(u.alias)}</strong><span>${esc(crews[u.crew] || u.crew)}</span></span><span class="admin-state ${esc(u.status)}">${esc(statuses[u.status] || u.status)}</span><span class="admin-chevron" aria-hidden="true">⌄</span></summary>
-      <div class="admin-user-info"><dl><div><dt>Завершено смен</dt><dd>${u.completed} из ${u.attempts}</dd></div><div><dt>Опыт</dt><dd>${u.xp} XP</dd></div><div><dt>Лояльность</dt><dd>${u.loyalty ?? '—'}</dd></div><div><dt>Безопасность</dt><dd>${u.safety ?? '—'}</dd></div><div class="admin-activity"><dt>Последняя активность</dt><dd>${esc(date(u.lastActivityAt))}</dd></div></dl>${u.overduePromises ? '<p class="admin-overdue">Есть просроченная задача</p>' : ''}</div>
+      <div class="admin-user-info"><dl><div><dt>Завершено смен</dt><dd>${u.completed} из ${u.attempts}</dd></div><div><dt>Компетенции</dt><dd>${u.competencyPoints ?? 0}</dd></div>${u.turn !== null && u.turn !== undefined ? `<div><dt>Ходы смены</dt><dd>${u.turn} / ${u.totalTurns}</dd></div>` : ''}<div><dt>Лояльность</dt><dd>${u.loyalty ?? '—'}</dd></div><div><dt>Безопасность</dt><dd>${u.safety ?? '—'}</dd></div><div class="admin-activity"><dt>Последняя активность</dt><dd>${esc(date(u.lastActivityAt))}</dd></div></dl>${u.overduePromises ? '<p class="admin-overdue">Есть просроченная задача</p>' : ''}</div>
     </details>`
             )
             .join('') ||

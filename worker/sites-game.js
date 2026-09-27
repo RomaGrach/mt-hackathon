@@ -1,3 +1,4 @@
+import { DESIGN002_CONTENT } from '../backend/design002-content.js';
 import initSqlJs from 'sql.js/dist/sql-asm.js';
 import { httpServerHandler } from 'cloudflare:node';
 import { createApp } from '../backend/http.js';
@@ -8,7 +9,11 @@ import { SqlJsStore } from './sqljs-store.js';
 const assets = __STATIC_ASSETS__;
 const sqlReady = initSqlJs();
 // Revalidate/re-publish content once per deployed content revision, not on every tap.
-const publicationFingerprint = contentHash({ scenarios, shift: SHIFT_CONTENT });
+const publicationFingerprint = contentHash({
+  scenarios,
+  shift: SHIFT_CONTENT,
+  design002: DESIGN002_CONTENT,
+});
 const security = {
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'no-referrer',

@@ -9,6 +9,7 @@ export function adminUsers(store, searchParams, now = Date.now()) {
   const total = store.get('SELECT COUNT(*) AS total FROM profiles').total;
   const rows = store.all(
     `SELECT p.id,p.alias,p.crew,p.created_at,a.xp,a.last_visit_at,
+    (SELECT COALESCE(SUM(json_extract(r.document,'$.competencyGain')),0) FROM results r WHERE r.profile_id=p.id AND json_extract(r.document,'$.engineVersion')='shift-4') AS competency_points,
     (SELECT COUNT(*) FROM runs r WHERE r.profile_id=p.id) AS attempts,
     (SELECT COUNT(*) FROM results r WHERE r.profile_id=p.id) AS completed,
     (SELECT state FROM runs r WHERE r.profile_id=p.id ORDER BY updated_at DESC LIMIT 1) AS latest_state,
@@ -32,6 +33,9 @@ export function adminUsers(store, searchParams, now = Date.now()) {
         crew: r.crew,
         createdAt: r.created_at,
         xp: r.xp || 0,
+        competencyPoints: Math.round(r.competency_points * 100) / 100,
+        turn: s?.engineVersion === 'shift-4' ? s.step : null,
+        totalTurns: s?.totalTurns ?? null,
         attempts: r.attempts,
         completed: r.completed,
         lastActivityAt: Math.max(r.last_action || 0, r.last_visit_at || 0, r.created_at),

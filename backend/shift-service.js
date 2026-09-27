@@ -1,20 +1,24 @@
+import { DESIGN002_CONTENT, validateDesign002 } from './design002-content.js';
+import { competencyProfile, competencyLeaders } from './design002-progress.js';
 import { randomUUID } from 'node:crypto';
 import { GameError } from './engine.js';
 import { SHIFT_CONTENT, canonical, contentHash, validateShiftContent } from './shift-content.js';
-import { createShift, reduceShift, expireShift, publicShiftState } from './shift-engine.js';
+import { createShift, reduceShift, expireShift, publicShiftState } from './shift-runtime.js';
 import { Motivation, qualityPoints } from './motivation.js';
 import { assertV2, objectFields, requestKey, validateCommand } from './v2-validation.js';
 const rulesHash = (c) =>
-  contentHash({
-    engineVersion: c.engineVersion,
-    rulesVersion: c.rulesVersion,
-    rubric: c.rubric,
-    effects: c.effects,
-    thresholds: c.thresholds,
-    timingPolicies: c.timingPolicies,
-  });
+  c.engineVersion === 'shift-4'
+    ? contentHash(c)
+    : contentHash({
+        engineVersion: c.engineVersion,
+        rulesVersion: c.rulesVersion,
+        rubric: c.rubric,
+        effects: c.effects,
+        thresholds: c.thresholds,
+        timingPolicies: c.timingPolicies,
+      });
 export function publishShiftContent(store, c, now) {
-  const errors = validateShiftContent(c);
+  const errors = c.engineVersion === 'shift-4' ? validateDesign002(c) : validateShiftContent(c);
   assertV2(!errors.length, 'INVALID_CONTENT', errors.join('; '), 400);
   const hash = contentHash(c),
     rules = rulesHash(c);
@@ -66,7 +70,10 @@ export class ShiftService {
     this.store = store;
     this.clock = clock;
     this.clockMode = clockMode;
-    if (publishContent) publishShiftContent(store, SHIFT_CONTENT, clock());
+    if (publishContent) {
+      publishShiftContent(store, SHIFT_CONTENT, clock());
+      publishShiftContent(store, DESIGN002_CONTENT, clock());
+    }
     this.motivation = new Motivation(store, () => this.currentContent(false));
   }
   currentContent(enabled = true, scenarioId = SHIFT_CONTENT.id) {
@@ -92,6 +99,7 @@ export class ShiftService {
         return true;
       })
       .map((c) => ({
+        engineVersion: c.engineVersion,
         id: c.id,
         version: c.version,
         title: c.title,
@@ -104,9 +112,16 @@ export class ShiftService {
           id,
           durationMs,
         })),
-        trainingVariants: Object.values(c.variants).map((v) => ({ id: v.id, label: v.label })),
+        trainingVariants: Object.values(c.variants).map((v) => ({
+          id: v.id,
+          label: v.label,
+          turns: v.turns,
+        })),
         reviewStatus: c.reviewStatus,
-      }));
+      }))
+      .sort(
+        (a, b) => Number(b.engineVersion === 'shift-4') - Number(a.engineVersion === 'shift-4')
+      );
   }
   owns(profile, id) {
     const row = this.store.get('SELECT * FROM runs WHERE id=? AND profile_id=?', id, profile);
@@ -119,7 +134,7 @@ export class ShiftService {
       meta = this.store.get('SELECT * FROM shift_meta WHERE run_id=?', id);
     assertV2(
       s.schemaVersion === 2 &&
-        ['shift-2', 'shift-3'].includes(s.engineVersion) &&
+        ['shift-2', 'shift-3', 'shift-4'].includes(s.engineVersion) &&
         meta?.engine_version === s.engineVersion &&
         meta.schema_version === 2,
       'UNSUPPORTED_RUN_VERSION',
@@ -272,14 +287,15 @@ export class ShiftService {
       );
       this.noActive(profile);
       let c = this.currentContent(true, body.scenarioId),
-        variantId = body.variantId ?? 'blocked-aisle',
+        variantId =
+          body.variantId ?? (c.engineVersion === 'shift-4' ? 'orientation' : 'blocked-aisle'),
         competition = null;
       assertV2(
-        body.variantId === undefined || body.mode === 'training',
+        body.variantId === undefined || body.mode === 'training' || c.engineVersion === 'shift-4',
         'VARIANT_NOT_ALLOWED',
         'Вариант оценочной попытки назначает сервер.'
       );
-      if (body.mode === 'assessment' && !body.competitionSlotId) {
+      if (body.mode === 'assessment' && !body.competitionSlotId && c.engineVersion !== 'shift-4') {
         const count = this.store.get(
           'SELECT COUNT(*) AS n FROM shift_meta m JOIN runs r ON r.id=m.run_id WHERE r.profile_id=?',
           profile
@@ -336,8 +352,8 @@ export class ShiftService {
   }
   persist(profile, previous, next, c, command, now, key = null) {
     if (next.result && !this.store.get('SELECT 1 FROM results WHERE run_id=?', next.id)) {
-      qualityPoints(next.result);
-      this.motivation.recordResult(profile, next);
+      if (next.engineVersion !== 'shift-4') qualityPoints(next.result);
+      if (next.engineVersion !== 'shift-4') this.motivation.recordResult(profile, next);
       this.store.run(
         'INSERT INTO results(run_id,profile_id,scenario_id,scenario_version,points,passed,practice,completed_at,document) VALUES(?,?,?,?,?,?,?,?,?)',
         next.id,
@@ -429,7 +445,7 @@ export class ShiftService {
         now = Math.max(this.clock(), s.lastObservedServerAt),
         next = expireShift(s, c, now);
       if (next !== s) this.persist(profile, s, next, c, { type: '_timeout' }, now);
-      else if (now > s.lastObservedServerAt) {
+      else if (now > s.lastObservedServerAt && s.engineVersion !== 'shift-4') {
         s.lastObservedServerAt = now;
         this.store.run(
           'UPDATE runs SET state=? WHERE id=? AND profile_id=?',
@@ -504,6 +520,11 @@ export class ShiftService {
       this.noActive(profile);
       const { s, c, meta } = this.load(profile, id);
       assertV2(s.result, 'RESULT_NOT_READY', 'Сначала завершите исходную смену.', 409);
+      assertV2(
+        s.engineVersion !== 'shift-4',
+        'FULL_SHIFT_REQUIRED',
+        'Начните новую полную смену с главной страницы.'
+      );
       const row = this.store.get(
         'SELECT document FROM shift_events WHERE run_id=? AND seq=?',
         id,
@@ -563,6 +584,12 @@ export class ShiftService {
       return { status: 201, body: this.insert(profile, c, branch, now) };
     });
   }
+  competencyView(profile) {
+    return competencyProfile(this.store, profile);
+  }
+  competencyLeaders(profile, scope, offset, limit) {
+    return competencyLeaders(this.store, profile, scope, offset, limit);
+  }
   motivationView(profile, touch = true) {
     return this.store.transaction(() => this.motivation.view(profile, this.clock(), touch));
   }
@@ -596,7 +623,13 @@ export class ShiftService {
       objectFields(body, ['requestId']);
       const { s } = this.load(profile, id);
       assertV2(s.result, 'RESULT_NOT_READY', 'Смена ещё не завершена.', 409);
-      return { status: 200, body: this.motivation.ack(profile, s.result, now) };
+      return {
+        status: 200,
+        body:
+          s.engineVersion === 'shift-4'
+            ? { competencyGain: s.result.competencyGain, alreadyRecorded: true }
+            : this.motivation.ack(profile, s.result, now),
+      };
     });
   }
   leaders(profile, scope, periodId, offset, limit) {

@@ -1,3 +1,4 @@
+import { designProfile, designLeaders } from './design002-view.js';
 import { adminView } from './admin-view.js';
 import * as ux from './ux.js';
 import { renderShift, sheet } from './shift-view.js';
@@ -53,7 +54,7 @@ function runView(model) {
   if (r.schemaVersion === 2)
     return (
       renderShift(r, { embedded: true }) +
-      shiftResultControls(r) +
+      (r.engineVersion === 'shift-4' ? '' : shiftResultControls(r)) +
       (model.auditMessage ? '<p role="status">' + esc(model.auditMessage) + '</p>' : '')
     );
   if (r.phase === 'feedback') return ux.feedback(r);
@@ -101,6 +102,7 @@ function legacyLeaders(model) {
     )}</div>${x ? `<p class="muted-text">${esc(x.scope === 'crew' ? crewName(model.boot) : x.group)} · ${x.total} участников</p><div class="leader-table"><div class="leader-table-head"><span>МЕСТО / УЧАСТНИК</span><span>СЦЕНАРИИ</span><span>ОЧКИ</span></div>${x.rows.map((r) => `<div class="leader-row ${r.me ? 'is-me' : ''}"><div><span class="rank ${r.rank <= 3 ? 'top-rank' : ''}">${String(r.rank).padStart(2, '0')}</span><span class="avatar small-avatar">${r.rank <= 3 ? '✦' : '◈'}</span><strong>${esc(r.name)}${r.me ? '<small>ВЫ</small>' : ''}</strong></div><span class="leader-completed">${r.completed} / ${x.scenarioCount}</span><strong class="leader-score">${r.score}</strong></div>`).join('')}</div><p class="muted-text">Показаны первые 50 мест. Рейтинг без вымышленных результатов: новые профили начинают с нуля.</p>` : '<p>Загружаем рейтинг…</p>'}`;
 }
 function profile(model) {
+  if (model.boot.competency) return designProfile(model);
   if (!model.boot.motivation) return legacyProfile(model);
   const old = legacyProfile(model),
     at = old.lastIndexOf('<div class="panel settings">'),
@@ -118,6 +120,7 @@ function profile(model) {
   );
 }
 function leaders(model) {
+  if (model.boot.competency) return designLeaders(model);
   if (!model.boot.motivation) return legacyLeaders(model);
   const legacy = legacyLeaders(model)
     .replace(/<div class="tabs"[^>]*>[\s\S]*?<\/div>/, '')

@@ -1,5 +1,28 @@
 // Prepared combinations of the published scenario, not new scenario content.
 export function courseLessons(catalog) {
+  if (catalog?.engineVersion === 'shift-4') {
+    const plan = [
+      ['standard', 'orientation'],
+      ['standard', 'service'],
+      ['comfort', 'attention'],
+      ['comfort', 'full'],
+      ['business', 'attention'],
+      ['business', 'full'],
+      ['first', 'attention'],
+      ['first', 'full'],
+    ];
+    return plan.map(([serviceClass, variantId], i) => ({
+      id: serviceClass + '-' + variantId,
+      number: i + 1,
+      serviceClass,
+      variantId,
+      classLabel: catalog.classes.find((c) => c.id === serviceClass).label,
+      title: catalog.trainingVariants.find((v) => v.id === variantId).label,
+      turns: catalog.trainingVariants.find((v) => v.id === variantId).turns,
+      mode: i < 6 ? 'training' : 'assessment',
+      timingPolicyId: i === 0 ? 'untimed' : i < 4 ? 'extended' : 'standard',
+    }));
+  }
   const classes = ['standard', 'comfort', 'business', 'first'];
   const variants = catalog?.trainingVariants || [];
   return classes.flatMap((serviceClass, level) =>
