@@ -137,6 +137,16 @@ test('защита от CSRF, некорректного JSON, лишних по
     413
   );
 });
+test('локальный сервер отдаёт модули главной и карты вагона', async (t) => {
+  const { request } = await fixture(t);
+  for (const file of ['/src/course.js', '/src/wagon-view.js']) {
+    const response = await request(file);
+    assert.equal(response.status, 200, file);
+    assert.match(response.headers.get('content-type'), /text\/javascript/);
+    assert.match(response.data, /export /);
+  }
+});
+
 test('static allowlist не раскрывает исходники сервера, БД, git и конфиги', async (t) => {
   const { request } = await fixture(t);
   for (const file of [
