@@ -2415,3 +2415,11 @@ button.wagon-seat:hover {background:#c5dcfa;transform:none;}
 @media(max-width:360px){
  .d2-result-summary span {font-size:12px;gap:4px;white-space:nowrap;}
 }
+
+/* Design002 compliance: personal loyalty and concise score explanation. */
+.d2-passenger-meter {max-width:360px;margin:10px 0 18px;}
+.d2-passenger-meter>span {display:flex;justify-content:space-between;gap:12px;font-size:14px;color:#49657a;}
+.d2-passenger-meter progress {display:block;width:100%;height:8px;margin-top:6px;accent-color:#218c80;}
+.d2-score-basis {font-size:14px;color:#49657a;margin:0 0 16px;}
+.d2-critical-error {color:#a5263c;font-weight:650;}
+.d2-legacy-clock {font-size:12px;color:#725634;text-align:right;}

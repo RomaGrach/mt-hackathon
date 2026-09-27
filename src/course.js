@@ -20,7 +20,7 @@ export function courseLessons(catalog) {
       title: catalog.trainingVariants.find((v) => v.id === variantId).label,
       turns: catalog.trainingVariants.find((v) => v.id === variantId).turns,
       mode: i < 6 ? 'training' : 'assessment',
-      timingPolicyId: i === 0 ? 'untimed' : i < 4 ? 'extended' : 'standard',
+      timingPolicyId: i < 4 ? 'extended' : 'standard',
     }));
   }
   const classes = ['standard', 'comfort', 'business', 'first'];
@@ -46,6 +46,7 @@ export function lessonPassed(lesson, history = []) {
       r.variantId === lesson.variantId &&
       r.serviceClass === lesson.serviceClass &&
       r.mode === lesson.mode &&
-      r.timingPolicyId === lesson.timingPolicyId
+      (r.timingPolicyId === lesson.timingPolicyId ||
+        (lesson.id === 'standard-orientation' && r.timingPolicyId === 'untimed'))
   );
 }

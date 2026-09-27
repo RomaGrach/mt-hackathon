@@ -13,7 +13,7 @@ const options = (serviceClass) => ({
   id: 'carriage-check-' + serviceClass,
   profileId: 'tester',
   mode: 'training',
-  timingPolicyId: 'untimed',
+  timingPolicyId: 'extended',
   variantId: 'orientation',
   serviceClass,
 });

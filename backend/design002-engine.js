@@ -4,6 +4,36 @@ const clamp = (n) => Math.max(0, Math.min(100, n));
 const round = (n) => Math.round(n * 100) / 100;
 const template = (text, p) => text.replaceAll('{seat}', String(p.seat));
 const definition = (c, p) => c.problems[p.templateId];
+const currentRules = (s) => s.mechanicsVersion === 2;
+function hasRequirement(s, definition, source) {
+  if (!definition.requires) return true;
+  return !!(currentRules(s) && definition.requiresScope === 'problem'
+    ? s.scopedFlags?.[source.parentId || source.id]?.[definition.requires]
+    : s.flags[definition.requires]);
+}
+function preventProblem(s, c, p, now) {
+  p.status = 'prevented';
+  log(s, 'prevented', definition(c, p).title, 'Проверка предотвратила повторное обращение.', now, {
+    incidentId: p.id,
+    causeEventId: p.preventedBy || p.causeEventId,
+  });
+}
+function bestApproach(d) {
+  const visit = (options, seen = new Set()) => {
+    for (const o of options) {
+      if (o.points === 2) return [o.label];
+      if (o.dialogue && !seen.has(o.dialogue)) {
+        const next = visit(d.dialogue[o.dialogue].choices, new Set([...seen, o.dialogue]));
+        if (next) return [o.label, ...next];
+      }
+    }
+    return null;
+  };
+  return (
+    visit(d.choices)?.join(' → ') ||
+    'Своевременно организовать помощь и передать проверенные сведения.'
+  );
+}
 function random(seed) {
   let n = 2166136261;
   for (const char of String(seed)) n = Math.imul(n ^ char.charCodeAt(0), 16777619);
@@ -61,7 +91,12 @@ function affect(s, effect, source) {
   }
   const before = s.scales.safety;
   s.scales.safety = clamp(before + (effect.safety || 0));
-  if (effect.flag) s.flags[effect.flag] = true;
+  if (effect.flag) {
+    if (currentRules(s) && effect.flagScope === 'problem') {
+      const key = source.parentId || source.id;
+      (s.scopedFlags[key] ||= {})[effect.flag] = true;
+    } else s.flags[effect.flag] = true;
+  }
   if (effect.prevent)
     for (const p of s.problems) {
       if (
@@ -115,6 +150,10 @@ function addProblem(s, c, id, source, now, delay = 0, cause = null) {
 function publish(s, c, now) {
   for (const p of s.problems) {
     if (p.status !== 'scheduled' || p.at > s.step) continue;
+    if (p.prevented && currentRules(s)) {
+      preventProblem(s, c, p, now);
+      continue;
+    }
     if (p.prevented) {
       p.status = 'prevented';
       log(
@@ -178,32 +217,45 @@ function outcome(s, c, p, o, now, reason = 'choice', spawn = true) {
     for (const id of o.tasks || []) addTask(s, c, id, p, now, e.eventId);
     if (o.next) addProblem(s, c, o.next, p, now, o.delay || 0, e.eventId);
   }
-  if (o.failShiftImmediately) s.fatal = { problemId: p.id, text: o.text };
+  if (o.failShiftImmediately && (!currentRules(s) || !s.fatal))
+    s.fatal = { problemId: p.id, text: o.text };
   if (s.criticalWindow?.incidentId === p.id) s.criticalWindow = null;
   if (s.focusIncidentId === p.id) {
     s.focusIncidentId = null;
     s.phase = 'overview';
   }
 }
-function taskOutcome(s, c, t, now, success) {
+function taskOutcome(s, c, t, now, success, spawn = true) {
   const d = c.tasks[t.templateId],
     o = success ? d.success : d.worst;
   t.status = success ? 'completed' : 'failed';
   t.outcome = o.text;
   const impact = affect(s, o, t);
-  log(s, success ? 'task_completed' : 'task_failed', d.label, o.text, now, {
+  const event = log(s, success ? 'task_completed' : 'task_failed', d.label, o.text, now, {
     taskId: t.id,
     seat: t.seat,
     impact,
     causeEventId: t.causeEventId,
   });
+  if (currentRules(s)) {
+    if (o.prevent)
+      for (const p of s.problems) {
+        if (p.prevented && p.parentId === t.parentId && p.templateId === o.prevent)
+          p.preventedBy = event.eventId;
+      }
+    if (spawn) {
+      for (const id of o.tasks || []) addTask(s, c, id, t, now, event.eventId);
+      if (o.next) addProblem(s, c, o.next, t, now, o.delay || 0, event.eventId);
+    }
+  }
 }
 function finish(s, c, now, reason) {
   // The pre-generated finite pool is part of the denominator, even on early failure.
   for (const p of s.problems)
-    if (['active', 'scheduled'].includes(p.status))
+    if (currentRules(s) && p.prevented && p.status === 'scheduled') preventProblem(s, c, p, now);
+    else if (['active', 'scheduled'].includes(p.status))
       outcome(s, c, p, definition(c, p).worst, now, 'shift_end', false);
-  for (const t of s.tasks) if (t.status === 'open') taskOutcome(s, c, t, now, false);
+  for (const t of s.tasks) if (t.status === 'open') taskOutcome(s, c, t, now, false, false);
   s.phase = 'result';
   s.status = reason === 'aborted' ? 'aborted' : s.fatal ? 'failed' : 'completed';
   s.finishedAt = now;
@@ -214,6 +266,20 @@ function finish(s, c, now, reason) {
   const fact = all.reduce((sum, p) => sum + (p.points || 0), 0),
     max = all.length * 2;
   const score = max ? round((fact / max) * 100) : 0;
+  const criticalErrors = currentRules(s)
+    ? all
+        .filter((p) => p.points === 0 && definition(c, p).category === 'critical')
+        .map((p) => ({
+          problemId: p.id,
+          title: definition(c, p).title,
+          seat: p.seat,
+          text: p.outcome,
+          resolution: p.resolution,
+          fatal: s.fatal?.problemId === p.id,
+        }))
+    : s.fatal
+      ? [s.fatal]
+      : [];
   log(
     s,
     'finished',
@@ -246,8 +312,8 @@ function finish(s, c, now, reason) {
     passed: !s.fatal && reason !== 'aborted',
     reasons: s.fatal ? [s.fatal.text] : reason === 'aborted' ? ['Смена прервана'] : [],
     scales: clone(s.scales),
-    criticalErrors: s.fatal ? [s.fatal] : [],
-    criticalError: !!s.fatal,
+    criticalErrors,
+    criticalError: currentRules(s) ? criticalErrors.length > 0 : !!s.fatal,
     episodePoints: score,
     fact,
     max,
@@ -270,9 +336,10 @@ function finish(s, c, now, reason) {
       choice: p.choice || null,
       text: p.outcome,
       parentId: p.parentId || null,
-      alternative:
-        definition(c, p).choices.find((o) => o.points === 2)?.label ||
-        'Своевременно организовать помощь и передать проверенные сведения.',
+      alternative: currentRules(s)
+        ? bestApproach(definition(c, p))
+        : definition(c, p).choices.find((o) => o.points === 2)?.label ||
+          'Своевременно организовать помощь и передать проверенные сведения.',
     })),
     tasks: s.tasks.map((t) => ({
       id: t.id,
@@ -291,6 +358,7 @@ function finish(s, c, now, reason) {
       undiscovered: all.filter((p) => !p.revealed).length,
       tasksDone: s.tasks.filter((t) => t.status === 'completed').length,
       tasksMissed: s.tasks.filter((t) => t.status === 'failed').length,
+      ...(currentRules(s) ? { criticalFailed: criticalErrors.length } : {}),
     },
   };
 }
@@ -403,6 +471,7 @@ export function createDesignShift(c, opts, now) {
   const s = {
     schemaVersion: 2,
     ...(c.journalVersion === 2 ? { journalVersion: 2 } : {}),
+    ...(c.mechanicsVersion === 2 ? { mechanicsVersion: 2, scopedFlags: {} } : {}),
     engineVersion: 'shift-4',
     id: opts.id,
     profileId: opts.profileId,
@@ -479,9 +548,8 @@ export function designActions(s, c) {
           sceneId: p.node,
           actionId: o.id,
           windowId: s.criticalWindow?.incidentId === p.id ? s.criticalWindow.id : null,
-          available: !o.requires || !!s.flags[o.requires],
-          unavailableReason:
-            o.requires && !s.flags[o.requires] ? 'Сначала выполните связанную задачу' : null,
+          available: hasRequirement(s, o, p),
+          unavailableReason: !hasRequirement(s, o, p) ? 'Сначала выполните связанную задачу' : null,
           cost: o.dialogue ? 0 : 1,
         })
       );
@@ -497,7 +565,7 @@ export function designActions(s, c) {
     );
     for (const t of s.tasks.filter((t) => t.status === 'open')) {
       const d = c.tasks[t.templateId],
-        available = !d.requires || !!s.flags[d.requires];
+        available = hasRequirement(s, d, t);
       actions.push(
         a('task', t.label, {
           taskId: t.id,

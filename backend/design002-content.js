@@ -804,15 +804,16 @@ const task = (label, text, success, worst, extra = {}) => ({
 });
 export const DESIGN002_CONTENT = {
   id: 'design002',
-  version: '1.0.3',
+  version: '1.1.0',
   journalVersion: 2,
+  mechanicsVersion: 2,
   schemaVersion: 2,
   engineVersion: 'shift-4',
   rulesVersion: 'design002-1',
   title: 'Смена проводника',
   reviewStatus: 'synthetic-training',
   creditFamilyId: 'design002',
-  timingPolicies: { standard: 60000, extended: 120000, untimed: null },
+  timingPolicies: { standard: 60000, extended: 120000 },
   policies: Object.fromEntries(
     Object.entries(CARRIAGE_LAYOUTS).map(([id, layout]) => [
       id,
@@ -934,7 +935,7 @@ export const DESIGN002_CONTENT = {
     'clean-floor': task(
       'Организовать уборку воды',
       'Удалить воду с обозначенного участка.',
-      { text: 'Вода убрана.', flag: 'floor-clean' },
+      { text: 'Вода убрана.', flag: 'floor-clean', flagScope: 'problem' },
       { text: 'Обозначенный участок не убран.', safety: -12 }
     ),
     'check-floor': task(
@@ -942,7 +943,7 @@ export const DESIGN002_CONTENT = {
       'После уборки убедиться, что проход безопасен.',
       { text: 'Пол сухой, ограничение снято.', safety: 4 },
       { text: 'Безопасность участка после уборки не подтверждена.', safety: -8 },
-      { requires: 'floor-clean', preventive: true }
+      { requires: 'floor-clean', requiresScope: 'problem', preventive: true }
     ),
     restock: task(
       'Пополнить санитарные принадлежности',
@@ -974,6 +975,11 @@ export const DESIGN002_CONTENT = {
 
 export function validateDesign002(c) {
   const errors = [];
+  if (
+    c.mechanicsVersion === 2 &&
+    Object.values(c.timingPolicies).some((ms) => !Number.isFinite(ms) || ms <= 0)
+  )
+    errors.push('Critical timers must have a positive real duration');
   for (const p of Object.values(c.problems || {})) {
     if (!p.choices?.length || p.worst?.points !== 0 || !(p.ttl > 0))
       errors.push('Invalid problem ' + p.id);

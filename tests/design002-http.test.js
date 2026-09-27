@@ -36,7 +36,7 @@ test('Design002 HTTP: full route, all classes, reload, score persistence and adm
       requestId: randomUUID(),
       scenarioId: 'design002',
       mode: 'training',
-      timingPolicyId: 'untimed',
+      timingPolicyId: 'extended',
       serviceClass,
       variantId: 'orientation',
     });

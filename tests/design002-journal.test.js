@@ -14,7 +14,7 @@ const opts = {
   profileId: 'tester',
   mode: 'training',
   serviceClass: 'standard',
-  timingPolicyId: 'untimed',
+  timingPolicyId: 'extended',
   variantId: 'orientation',
 };
 test('briefing never publishes premature tasks or history; old states are filtered too', () => {
@@ -90,7 +90,7 @@ test('result opens as a short summary with four optional detail groups', () => {
 test('enriched journal survives reload and exact replay', (t) => {
   const h = harness();
   t.after(() => h.store.close());
-  h.start({ scenarioId: 'design002', variantId: 'orientation', timingPolicyId: 'untimed' });
+  h.start({ scenarioId: 'design002', variantId: 'orientation', timingPolicyId: 'extended' });
   h.act('begin');
   const focus = h.run.actions.find((a) => a.command === 'focus');
   h.act('focus', focus.incidentId);

@@ -225,7 +225,7 @@ test('Design002: at most one active critical issue for every generated seed and 
 test('Design002: service persists exact replay, idempotent commands and cumulative competence without acknowledgment', (t) => {
   const h = harness();
   t.after(() => h.store.close());
-  h.start({ scenarioId: 'design002', variantId: 'orientation', timingPolicyId: 'untimed' });
+  h.start({ scenarioId: 'design002', variantId: 'orientation', timingPolicyId: 'extended' });
   h.act('begin');
   let guard = 0;
   while (!h.run.result && guard++ < 100) {
@@ -323,7 +323,7 @@ test('Design002: late command commits timeout once and a second completed shift 
   h.run = h.v2.get(h.profile, id);
   if (!h.run.result) h.act('abort');
   const before = h.service.bootstrap(h.profile).competency.points;
-  h.start({ scenarioId: 'design002', variantId: 'orientation', timingPolicyId: 'untimed' });
+  h.start({ scenarioId: 'design002', variantId: 'orientation', timingPolicyId: 'extended' });
   h.act('begin');
   guard = 0;
   while (!h.run.result && guard++ < 100) {

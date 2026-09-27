@@ -31,8 +31,17 @@ export function competencyProfile(store, profileId) {
     })),
     mistakes: rows
       .slice(0, 10)
-      .flatMap((r) =>
-        r.problems
+      .flatMap((r) => [
+        ...r.tasks
+          .filter((t) => t.status === 'failed')
+          .map((t) => ({
+            runId: r.runId,
+            title: 'Не выполнена задача: ' + t.label,
+            text: t.text,
+            seat: t.seat,
+            kind: 'task',
+          })),
+        ...r.problems
           .filter((p) => p.points < 2)
           .map((p) => ({
             runId: r.runId,
@@ -40,8 +49,8 @@ export function competencyProfile(store, profileId) {
             text: p.text,
             points: p.points,
             seat: p.seat,
-          }))
-      )
+          })),
+      ])
       .slice(0, 15),
   };
 }
