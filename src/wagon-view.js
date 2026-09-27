@@ -14,7 +14,10 @@ export function incidentTone(incident, run) {
       ['open', 'pending'].includes(run.criticalWindow.status))
   )
     return 'urgent';
-  return incident.status === 'waiting' ? 'waiting' : 'attention';
+  return incident.status === 'waiting' &&
+    !['accepted', 'completed'].includes(incident.handoffStatus)
+    ? 'waiting'
+    : 'attention';
 }
 export function incidentNavigation(run, id) {
   if (run.focusIncidentId === id && run.phase === 'scene') return 'data-game-tab="scene"';
@@ -40,7 +43,7 @@ export function wagonMap(run) {
     const navigation = incidentNavigation(run, incident.id);
     const tone = incidentTone(incident, run);
     const current = run.focusIncidentId === incident.id;
-    const body = `<span class="map-dot" aria-hidden="true">${tone === 'resolved' ? '✓' : tone === 'urgent' ? '!' : '•'}</span><span><strong>${esc(incident.label)}</strong><small>${current ? 'Вы здесь · ' : ''}${esc(labels[incident.status] || incident.status)}</small></span>`;
+    const body = `<span class="map-dot" aria-hidden="true">${tone === 'resolved' ? '✓' : tone === 'urgent' ? '!' : '•'}</span><span><strong>${esc(incident.label)}</strong><small>${current ? 'Вы здесь · ' : ''}${esc(incident.status === 'waiting' && ['accepted', 'completed'].includes(incident.handoffStatus) ? 'Проверьте исполнение' : labels[incident.status] || incident.status)}</small></span>`;
     return navigation
       ? `<button class="map-marker ${tone}" ${navigation}>${body}<span aria-hidden="true">→</span></button>`
       : `<div class="map-marker ${tone}">${body}</div>`;

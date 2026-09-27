@@ -52,7 +52,7 @@ test('known work exposes focus in the scene and never reintroduces wait through 
   assert.doesNotMatch(scene, /Ждать/);
   const awaiting = {
     ...run,
-    incidents: [{ ...run.incidents[0], status: 'waiting', handoffStatus: 'accepted' }],
+    incidents: [{ ...run.incidents[0], status: 'waiting', handoffStatus: 'requested' }],
   };
   assert.match(
     renderShift(awaiting)
@@ -75,4 +75,17 @@ test('map reveals only server-known incidents, changes class layout and reflects
   assert.match(done, /2 плюс 1/);
   assert.match(done, /Решено/);
   assert.doesNotMatch(done, /data-focus-incident/);
+});
+
+test('accepted handoff requires a decision, not another wait', () => {
+  const ready = {
+    ...run,
+    incidents: [{ ...run.incidents[0], status: 'waiting', handoffStatus: 'accepted' }],
+  };
+  const scene = renderShift(ready)
+    .split('data-game-pane="scene">')[1]
+    .split('<section class="game-pane"')[0];
+  assert.match(scene, /Подойти/);
+  assert.doesNotMatch(scene, /Ждать/);
+  assert.match(wagonMap(ready), /Проверьте исполнение/);
 });

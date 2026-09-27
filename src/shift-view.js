@@ -131,7 +131,7 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
     const actionable = (run.incidents || []).some(
       (i) =>
         !['resolved', 'failed'].includes(i.status) &&
-        (i.status !== 'waiting' || i.handoffStatus === 'completed') &&
+        (i.status !== 'waiting' || ['accepted', 'completed'].includes(i.handoffStatus)) &&
         actions.some((a) => a.command === 'focus' && a.incidentId === i.id && a.available !== false)
     );
     // Consumed actions must not reappear through the fallback renderer.
@@ -147,7 +147,20 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
   if (['inspection', 'scene'].includes(run.phase))
     body = `${heading(run.stage === 'inspection' ? 'Приёмка' : 'Ситуация · ' + (run.incidents?.find((i) => i.id === run.focusIncidentId)?.label || 'Вагон 3'), run.scene?.title || 'Текущее дело')}<div class="scene-card"><p class="speaker">${esc(run.scene?.speaker || 'Наблюдение')}</p><p class="observation">${esc(run.scene?.text)}</p></div><h2 class="decision-label">${esc(run.scene?.prompt || 'Ваше действие')}</h2>${mainActions()}`;
   if (run.phase === 'overview')
-    body = `${heading('Обзор вагона', 'Что требует внимания')}<div class="scene-card">${(run.observations || []).map((o) => `<p>${esc(o.text)}</p>`).join('')}</div>${overviewActions()}`;
+    body = `${heading('Обзор вагона', 'Что требует внимания')}<div class="scene-card">${(
+      run.observations || []
+    )
+      .map((o) => {
+        const a = run.incidents?.find((i) => i.id === 'a-seat');
+        const text =
+          o.id === 'obs-seats' && a?.status === 'waiting'
+            ? ['accepted', 'completed'].includes(a.handoffStatus)
+              ? 'Коллега принял запрос. Проверьте исполнение и вернитесь к пассажиру у места 18.'
+              : 'Запрос по местам 18–19 передан коллеге. Ожидается подтверждение.'
+            : o.text;
+        return `<p>${esc(text)}</p>`;
+      })
+      .join('')}</div>${overviewActions()}`;
   if (run.phase === 'feedback')
     body = `${heading('Последствие', run.feedback?.timedOut ? 'Время вышло' : 'Что изменилось')}<div class="scene-card feedback-card"><p class="observation">${esc(run.feedback?.text)}</p>${run.feedback?.impact ? `<div class="impact-row"><span>♥ ${Number(run.feedback.impact.loyalty) > 0 ? '+' : ''}${Number(run.feedback.impact.loyalty) || 0}</span><span>◈ ${Number(run.feedback.impact.safety) > 0 ? '+' : ''}${Number(run.feedback.impact.safety) || 0}</span></div>` : ''}</div>${mainActions()}${w?.status === 'pending' ? '<p class="critical-notice">Следующее действие будет срочным.</p>' : ''}`;
   if (run.phase === 'paused')
