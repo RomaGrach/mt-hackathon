@@ -145,7 +145,7 @@ export function renderShift(run, { prototype = false, embedded = false } = {}) {
   if (run.phase === 'briefing')
     body = `${heading('Начало смены', 'Вагон готов к приёмке', 'Проверьте вагон, разберитесь с обращениями и выполните задачи.')}<div class="scene-card"><p>Часы начинаются с 08:00. Рабочие действия продвигают время на указанную длительность. Чтение и переходы времени не требуют.</p><p>В срочных ситуациях появится отдельный таймер реального времени.</p></div>${mainActions()}`;
   if (['inspection', 'scene'].includes(run.phase))
-    body = `${heading(run.stage === 'inspection' ? 'Приёмка' : 'Ситуация · ' + (run.incidents?.find((i) => i.id === run.focusIncidentId)?.label || 'Вагон 3'), run.scene?.title || 'Текущее дело')}<div class="scene-card"><p class="speaker">${esc(run.scene?.speaker || 'Наблюдение')}</p><p class="observation">${esc(run.scene?.text)}</p></div><h2 class="decision-label">${esc(run.scene?.prompt || 'Ваше действие')}</h2>${mainActions()}`;
+    body = `${heading(run.stage === 'inspection' ? 'Приёмка' : 'Ситуация · ' + (run.incidents?.find((i) => i.id === run.focusIncidentId)?.label || 'Вагон 3'), run.scene?.title || 'Текущее дело')}<div class="scene-card ${run.scene?.dialogue ? 'dialogue-scene' : ''}">${run.scene?.previousLine ? `<p class="previous-line"><span>Вы</span>${esc(run.scene.previousLine)}</p>` : ''}<p class="speaker">${esc(run.scene?.speaker || 'Наблюдение')}</p><p class="observation">${esc(run.scene?.text)}</p></div><h2 class="decision-label">${esc(run.scene?.prompt || 'Ваше действие')}</h2>${mainActions()}`;
   if (run.phase === 'overview')
     body = `${heading('Обзор вагона', 'Что требует внимания')}<div class="scene-card">${(
       run.observations || []

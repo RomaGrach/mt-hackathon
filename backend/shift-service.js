@@ -119,8 +119,8 @@ export class ShiftService {
       meta = this.store.get('SELECT * FROM shift_meta WHERE run_id=?', id);
     assertV2(
       s.schemaVersion === 2 &&
-        s.engineVersion === 'shift-2' &&
-        meta?.engine_version === 'shift-2' &&
+        ['shift-2', 'shift-3'].includes(s.engineVersion) &&
+        meta?.engine_version === s.engineVersion &&
         meta.schema_version === 2,
       'UNSUPPORTED_RUN_VERSION',
       'Для этой попытки требуется другая версия движка.',
