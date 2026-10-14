@@ -1,6 +1,6 @@
 # Источники стажировок
 
-Обновлено: 14.10.2026.
+Обновлено: 15.10.2026.
 
 Этот файл — постоянный реестр сайтов, на которых мы ищем стажировки для студентов старших курсов и начинающих специалистов.
 
@@ -42,6 +42,7 @@
 | hh.ru | https://hh.ru/ | Самый широкий поток вакансий и стажировок; искать отдельными запросами | A |
 | CareerSpace | https://careerspace.app/ | Корпоративные стажировки и junior-позиции | B |
 | HSE Career | https://career.hse.ru/ | Стажировки и вакансии компаний-партнёров, не только для ВШЭ | B |
+| Young&Junior | https://youngjunior.ru/ | Агрегатор junior/intern-позиций; полезен для быстрого обнаружения свежих ML/AI/LLM вакансий, затем перепроверять первоисточник | B |
 
 ### Поисковые запросы для hh.ru / Habr Career
 
@@ -69,6 +70,7 @@
 | Сбер | https://sbergraduate.ru/ | Data Science, ML, разработка, аналитика, ИБ | A |
 | VK | https://education.vk.company/ | Стажировки и образовательные программы по разработке, ML и данным | A |
 | Ozon Tech / Ozon | https://job.ozon.ru/ | Разработка, data, ML, инфраструктура, ИБ | A |
+| X5 Tech BIG IN | https://generationx5.tech/ | Data Science, Computer Vision, ML, Python; оплачиваемые стажировки 20–40 часов | A |
 | Островок! Career | https://career.ostrovok.ru/internship | IT Development, data и другие стажёрские направления | B |
 | Softline Career | https://softline.ru/about/vacancies | Разработка, инженерия, системное администрирование, data | B |
 | Smart Engines | https://smartengines.ru/internship/ | Computer Vision, C++, Python, ML | B |
@@ -101,7 +103,9 @@
 - Smart Engines — CV/ML;
 - КРОК — SOC;
 - R-Vision — ML/LLM;
-- Ozon — SOC и смежные технические роли.
+- Ozon — SOC и смежные технические роли;
+- X5 Tech BIG IN — Data Science и Computer Vision;
+- Young&Junior — свежие агрегированные ML/AI/LLM стажировки с обязательной перепроверкой первоисточника.
 
 ## 5. Минимальный список для регулярной проверки
 
@@ -117,12 +121,13 @@
 8. https://sbergraduate.ru/
 9. https://education.vk.company/
 10. https://job.ozon.ru/
-11. https://safeboard.kaspersky.ru/
-12. https://ptsecurity.com/
-13. https://bi.zone/
-14. https://careers.croc.ru/
-15. https://career.ostrovok.ru/internship
-16. https://careerspace.app/
+11. https://generationx5.tech/
+12. https://safeboard.kaspersky.ru/
+13. https://ptsecurity.com/
+14. https://bi.zone/
+15. https://careers.croc.ru/
+16. https://career.ostrovok.ru/internship
+17. https://careerspace.app/
 
 ## 6. Правило расширения списка
 
