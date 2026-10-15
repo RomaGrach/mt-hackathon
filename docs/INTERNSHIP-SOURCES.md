@@ -1,6 +1,6 @@
 # Источники стажировок
 
-Обновлено: 15.10.2026.
+Обновлено: 16.10.2026.
 
 Этот файл — постоянный реестр сайтов, на которых мы ищем стажировки для студентов старших курсов и начинающих специалистов.
 
@@ -31,6 +31,16 @@
    - отзывы о стажировке и команде;
    - вероятность продолжения в штат.
 5. Архивные вакансии не удалять из истории поиска, но не считать активными.
+
+## 0. Самый высокий приоритет — программы МАИ и партнёров
+
+Приоритет **S** — проверять раньше всех остальных источников.
+
+| Программа / источник | URL | Что отслеживать | Приоритет |
+|---|---|---|---|
+| МАИ + Сбер — «Сопровождение банковских информационных систем» | https://mai.ru/press/events/detail.php?ID=186355 | Совместная бесплатная очная IT-программа МАИ и Сбера. Лучшие участники получают возможность стажировки и начала карьеры в Сбере. На странице указан поток 2025 года; следующий набор отслеживать отдельно. Для потока 2025 принимали студентов МАИ с 3 курса по группам направлений 09 и 11 — при новом наборе обязательно перепроверять ограничения. | **S — №1** |
+| Центр карьеры МАИ | https://mai.ru/career/ | Вакансии, карьерные мероприятия и программы индустриальных партнёров МАИ | **S** |
+| Цифровая кадровая платформа МАИ | https://platforma.mai.ru/ | Вакансии, стажировки и образовательные активности для студентов МАИ | **S** |
 
 ## 1. Основные агрегаторы и каталоги
 
@@ -111,23 +121,26 @@
 
 Если нужно быстро пройтись по источникам, проверять в таком порядке:
 
-1. https://career.habr.com/vacancies/stazher
-2. https://hh.ru/
-3. https://changellenge.com/
-4. https://it.fut.ru/internship
-5. https://yandex.ru/yaintern/
-6. https://education.tbank.ru/
-7. https://github.com/avito-tech/tech-internship
-8. https://sbergraduate.ru/
-9. https://education.vk.company/
-10. https://job.ozon.ru/
-11. https://generationx5.tech/
-12. https://safeboard.kaspersky.ru/
-13. https://ptsecurity.com/
-14. https://bi.zone/
-15. https://careers.croc.ru/
-16. https://career.ostrovok.ru/internship
-17. https://careerspace.app/
+1. https://mai.ru/press/events/
+2. https://mai.ru/career/
+3. https://platforma.mai.ru/
+4. https://career.habr.com/vacancies/stazher
+5. https://hh.ru/
+6. https://changellenge.com/
+7. https://it.fut.ru/internship
+8. https://yandex.ru/yaintern/
+9. https://education.tbank.ru/
+10. https://github.com/avito-tech/tech-internship
+11. https://sbergraduate.ru/
+12. https://education.vk.company/
+13. https://job.ozon.ru/
+14. https://generationx5.tech/
+15. https://safeboard.kaspersky.ru/
+16. https://ptsecurity.com/
+17. https://bi.zone/
+18. https://careers.croc.ru/
+19. https://career.ostrovok.ru/internship
+20. https://careerspace.app/
 
 ## 6. Правило расширения списка
 
