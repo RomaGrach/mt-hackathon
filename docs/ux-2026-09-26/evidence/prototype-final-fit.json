@@ -1,0 +1,202 @@
+[
+  {
+    "screen": "home",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "screen": "overview",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "screen": "incident",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "screen": "action",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "screen": "feedback",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "screen": "result",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "screen": "profile",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "screen": "ranking",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "screen": "home",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "screen": "overview",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "screen": "incident",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "screen": "action",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "screen": "feedback",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "screen": "result",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "screen": "profile",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "screen": "ranking",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "screen": "home",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "screen": "overview",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "screen": "incident",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "screen": "action",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "screen": "feedback",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "screen": "result",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "screen": "profile",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "screen": "ranking",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "screen": "home",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "screen": "overview",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "screen": "incident",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "screen": "action",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "screen": "feedback",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "screen": "result",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "screen": "profile",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "screen": "ranking",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "screen": "home",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "screen": "overview",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "screen": "incident",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "screen": "action",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "screen": "feedback",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "screen": "result",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "screen": "profile",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "screen": "ranking",
+    "width": 1440,
+    "overflow": false
+  }
+]

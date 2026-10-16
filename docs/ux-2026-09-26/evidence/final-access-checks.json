@@ -1,0 +1,12 @@
+{
+  "buttonFit": {
+    "top": 487.140625,
+    "bottom": 535.140625,
+    "navTop": 779,
+    "visible": true
+  },
+  "focusAfter": {
+    "name": "mode",
+    "value": "assessment"
+  }
+}
